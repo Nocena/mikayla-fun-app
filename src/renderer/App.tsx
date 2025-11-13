@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChakraProvider, Box, Flex } from '@chakra-ui/react';
-import type { MenuItemId } from './types/index.js';
+import type { MenuItemId } from './types';
 import { MENU_ITEMS } from './constants/menuItems.js';
 import { Sidebar } from './components/Sidebar/Sidebar.js';
 import { ContentPanel } from './components/ContentPanel/ContentPanel.js';

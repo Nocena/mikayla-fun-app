@@ -1,5 +1,5 @@
 import { Box, HStack, Button } from '@chakra-ui/react';
-import type { BrowserTab } from '../../types/index.js';
+import type { BrowserTab } from '../../types';
 import { BrowserTabItem } from './BrowserTabItem.js';
 
 interface BrowserTabsProps {

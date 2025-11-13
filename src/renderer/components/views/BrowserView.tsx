@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Box } from '@chakra-ui/react';
 import { BrowserTabs } from '../BrowserTabs/BrowserTabs.js';
 import { BrowserContent } from '../BrowserContent/BrowserContent.js';
-import type { BrowserTab } from '../../types/index.js';
+import type { BrowserTab } from '../../types';
 
 export const BrowserView = () => {
   const [tabs, setTabs] = useState<BrowserTab[]>([

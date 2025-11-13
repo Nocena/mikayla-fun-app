@@ -1,5 +1,5 @@
 import { Button, HStack, Text } from '@chakra-ui/react';
-import type { MenuItem } from '../../types/index.js';
+import type { MenuItem } from '../../types';
 
 interface SidebarItemProps {
   item: MenuItem;

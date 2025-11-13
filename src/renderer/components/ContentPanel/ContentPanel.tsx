@@ -1,5 +1,5 @@
 import { Box } from '@chakra-ui/react';
-import type { MenuItemId } from '../../types/index.js';
+import type { MenuItemId } from '../../types';
 import { HomeView } from '../views/HomeView.js';
 import { BrowserView } from '../views/BrowserView.js';
 import { SettingsView } from '../views/SettingsView.js';

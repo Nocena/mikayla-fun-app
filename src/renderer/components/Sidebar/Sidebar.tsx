@@ -1,6 +1,7 @@
-import { Box, Heading, VStack } from '@chakra-ui/react';
-import type { MenuItem, MenuItemId } from '../../types/index.js';
+import { Box, Heading, VStack, Center } from '@chakra-ui/react';
+import type { MenuItem, MenuItemId } from '../../types';
 import { SidebarItem } from './SidebarItem.js';
+import { Logo } from '../Logo/Logo.js';
 
 interface SidebarProps {
   menuItems: MenuItem[];
@@ -20,9 +21,9 @@ export const Sidebar = ({ menuItems, activeItem, onItemClick }: SidebarProps) =>
       flexDirection="column"
     >
       <Box p={5} borderBottom="1px" borderColor="gray.700">
-        <Heading size="md" color="white">
-          Menu
-        </Heading>
+        <Center>
+          <Logo size="md" />
+        </Center>
       </Box>
       <VStack spacing={1} p={2} align="stretch" flex={1}>
         {menuItems.map((item) => (
