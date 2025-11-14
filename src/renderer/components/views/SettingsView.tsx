@@ -1,42 +1,42 @@
 import { useState, useEffect } from 'react';
 import { Box, Heading, Text, VStack, HStack, Button, Code, Badge, Spinner } from '@chakra-ui/react';
-import { getAllStorage, deleteStorageForOrigin } from '../../utils/storageUtils.js';
+import { getAllCookies, deleteCookiesForOrigin } from '../../utils/storageUtils.js';
 
 export const SettingsView = () => {
-  const [storageData, setStorageData] = useState<Record<string, Record<string, string>>>({});
+  const [cookiesData, setCookiesData] = useState<Record<string, { url: string; cookies: Record<string, string> }>>({});
   const [loading, setLoading] = useState(true);
   const [selectedOrigin, setSelectedOrigin] = useState<string | null>(null);
 
-  const loadStorageData = async () => {
+  const loadCookiesData = async () => {
     setLoading(true);
     try {
-      const data = await getAllStorage();
-      setStorageData(data);
+      const data = await getAllCookies();
+      setCookiesData(data);
     } catch (error) {
-      console.error('Error loading storage data:', error);
+      console.error('Error loading cookies data:', error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadStorageData();
+    loadCookiesData();
     // Refresh every 5 seconds to show updates
-    const interval = setInterval(loadStorageData, 5000);
+    const interval = setInterval(loadCookiesData, 5000);
     return () => clearInterval(interval);
   }, []);
 
   const handleDelete = async (origin: string) => {
-    const success = await deleteStorageForOrigin(origin);
+    const success = await deleteCookiesForOrigin(origin);
     if (success) {
-      await loadStorageData();
+      await loadCookiesData();
       if (selectedOrigin === origin) {
         setSelectedOrigin(null);
       }
     }
   };
 
-  const origins = Object.keys(storageData);
+  const origins = Object.keys(cookiesData);
 
   return (
     <Box flex={1} p={10} overflowY="auto">
@@ -46,23 +46,23 @@ export const SettingsView = () => {
 
       <Box mb={8}>
         <Heading size="md" mb={3} color="gray.300">
-          Captured LocalStorage Data
+          Captured Cookies Data
         </Heading>
         <Text color="gray.400" fontSize="sm" mb={4}>
-          LocalStorage data captured from websites opened in the browser view
+          Cookies captured from websites opened in the browser view
         </Text>
 
         {loading ? (
           <Spinner color="blue.500" />
         ) : origins.length === 0 ? (
           <Text color="gray.500" fontSize="sm">
-            No localStorage data captured yet. Open a website in the browser view to capture its localStorage.
+            No cookies captured yet. Open a website in the browser view to capture its cookies.
           </Text>
         ) : (
           <VStack align="stretch" spacing={4}>
             {origins.map((origin) => {
-              const data = storageData[origin];
-              const itemCount = Object.keys(data).length;
+              const data = cookiesData[origin];
+              const cookieCount = Object.keys(data?.cookies || {}).length;
               const isSelected = selectedOrigin === origin;
 
               return (
@@ -81,7 +81,7 @@ export const SettingsView = () => {
                       <Text color="white" fontWeight="bold" fontSize="sm">
                         {origin}
                       </Text>
-                      <Badge colorScheme="blue">{itemCount} items</Badge>
+                      <Badge colorScheme="blue">{cookieCount} cookies</Badge>
                     </HStack>
                     <Button
                       size="xs"
@@ -94,11 +94,17 @@ export const SettingsView = () => {
                       Delete
                     </Button>
                   </HStack>
+                  
+                  {data?.url && (
+                    <Text color="gray.500" fontSize="xs" mb={isSelected ? 2 : 0}>
+                      {data.url}
+                    </Text>
+                  )}
 
-                  {isSelected && (
+                  {isSelected && data?.cookies && (
                     <Box mt={3} pt={3} borderTop="1px" borderColor="gray.700">
                       <VStack align="stretch" spacing={2}>
-                        {Object.entries(data).map(([key, value]) => (
+                        {Object.entries(data.cookies).map(([key, value]) => (
                           <Box key={key} p={2} bg="gray.900" borderRadius="sm">
                             <Text color="gray.400" fontSize="xs" mb={1}>
                               {key}:

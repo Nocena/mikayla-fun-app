@@ -5,25 +5,32 @@ interface BrowserIframeProps {
   url: string;
 }
 
-// Script to capture localStorage and return it
-const getLocalStorageScript = `
+// Script to capture cookies and return them
+const getCookiesScript = `
   (function() {
     try {
-      const storage = {};
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key) {
-          storage[key] = localStorage.getItem(key);
-        }
+      const cookies = {};
+      const cookieString = document.cookie || '';
+      
+      if (cookieString) {
+        cookieString.split(';').forEach(cookie => {
+          const [name, ...rest] = cookie.trim().split('=');
+          if (name) {
+            cookies[name] = rest.join('=') || '';
+          }
+        });
       }
+      
       return {
         origin: window.location.origin,
-        data: storage
+        url: window.location.href,
+        cookies: cookies
       };
     } catch (error) {
       return {
         origin: window.location.origin,
-        data: {},
+        url: window.location.href || '',
+        cookies: {},
         error: error.message
       };
     }
@@ -34,24 +41,25 @@ export const BrowserIframe = ({ url }: BrowserIframeProps) => {
   const webviewRef = useRef<WebviewTag | null>(null);
   const captureIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Function to capture and save localStorage
-  const captureLocalStorage = async () => {
+  // Function to capture and save cookies
+  const captureCookies = async () => {
     const webview = webviewRef.current;
     if (!webview) return;
 
     try {
-      // Execute script to get localStorage directly from webview
-      const result = await webview.executeJavaScript(getLocalStorageScript);
+      // Execute script to get cookies directly from webview
+      const result = await webview.executeJavaScript(getCookiesScript);
       
-      if (result && result.origin && result.data) {
+      if (result && result.origin && result.cookies) {
         // Save to main process
-        const saveResult = await window.electronAPI.storage.save(
+        const saveResult = await window.electronAPI.cookies.save(
           result.origin,
-          result.data
+          result.url,
+          result.cookies
         );
         
         if (saveResult.success) {
-          console.log(`LocalStorage captured for ${result.origin}:`, Object.keys(result.data).length, 'items');
+          console.log(`Cookies captured for ${result.origin}:`, Object.keys(result.cookies).length, 'cookies');
         }
       }
     } catch (error) {
@@ -65,16 +73,16 @@ export const BrowserIframe = ({ url }: BrowserIframeProps) => {
     if (!webview) return;
 
     const handleDOMReady = () => {
-      // Start capturing localStorage periodically
+      // Start capturing cookies periodically
       if (captureIntervalRef.current) {
         clearInterval(captureIntervalRef.current);
       }
       
       // Capture immediately
-      setTimeout(captureLocalStorage, 1000);
+      setTimeout(captureCookies, 1000);
       
       // Capture every 2 seconds
-      captureIntervalRef.current = setInterval(captureLocalStorage, 2000);
+      captureIntervalRef.current = setInterval(captureCookies, 2000);
     };
 
     const handleDidNavigate = (event: { url: string }) => {
@@ -95,7 +103,7 @@ export const BrowserIframe = ({ url }: BrowserIframeProps) => {
     const handleDidNavigateInPage = (event: { url: string; isMainFrame: boolean }) => {
       // Handle single-page app navigation
       if (event.isMainFrame) {
-        setTimeout(captureLocalStorage, 500);
+        setTimeout(captureCookies, 500);
       }
     };
 

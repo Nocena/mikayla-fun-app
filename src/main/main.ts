@@ -8,8 +8,8 @@ const __dirname = dirname(__filename);
 
 let mainWindow: BrowserWindow | null = null;
 
-// Store localStorage data by origin
-const localStorageStore = new Map<string, Record<string, string>>();
+// Store cookies by origin
+const cookieStore = new Map<string, { url: string; cookies: Record<string, string> }>();
 
 const createWindow = (): void => {
   // Set app icon path - check for platform-specific icons first
@@ -62,48 +62,48 @@ const createWindow = (): void => {
   });
 };
 
-// IPC handlers for localStorage operations
-ipcMain.handle('storage:save', (_event, origin: string, data: Record<string, string>) => {
+// IPC handlers for cookie operations
+ipcMain.handle('cookies:save', (_event, origin: string, url: string, cookies: Record<string, string>) => {
   try {
-    localStorageStore.set(origin, data);
-    console.log(`Storage saved for origin: ${origin}`, data);
+    cookieStore.set(origin, { url, cookies });
+    console.log(`Cookies saved for origin: ${origin}`, cookies);
     return { success: true };
   } catch (error) {
-    console.error('Error saving storage:', error);
+    console.error('Error saving cookies:', error);
     return { success: false, error: String(error) };
   }
 });
 
-ipcMain.handle('storage:get', (_event, origin: string) => {
+ipcMain.handle('cookies:get', (_event, origin: string) => {
   try {
-    const data = localStorageStore.get(origin) || {};
-    return { success: true, data };
+    const data = cookieStore.get(origin);
+    return { success: true, data: data || null };
   } catch (error) {
-    console.error('Error getting storage:', error);
-    return { success: false, error: String(error), data: {} };
+    console.error('Error getting cookies:', error);
+    return { success: false, error: String(error), data: null };
   }
 });
 
-ipcMain.handle('storage:getAll', () => {
+ipcMain.handle('cookies:getAll', () => {
   try {
-    const allData: Record<string, Record<string, string>> = {};
-    localStorageStore.forEach((value, key) => {
+    const allData: Record<string, { url: string; cookies: Record<string, string> }> = {};
+    cookieStore.forEach((value, key) => {
       allData[key] = value;
     });
     return { success: true, data: allData };
   } catch (error) {
-    console.error('Error getting all storage:', error);
+    console.error('Error getting all cookies:', error);
     return { success: false, error: String(error), data: {} };
   }
 });
 
-ipcMain.handle('storage:delete', (_event, origin: string) => {
+ipcMain.handle('cookies:delete', (_event, origin: string) => {
   try {
-    localStorageStore.delete(origin);
-    console.log(`Storage deleted for origin: ${origin}`);
+    cookieStore.delete(origin);
+    console.log(`Cookies deleted for origin: ${origin}`);
     return { success: true };
   } catch (error) {
-    console.error('Error deleting storage:', error);
+    console.error('Error deleting cookies:', error);
     return { success: false, error: String(error) };
   }
 });
