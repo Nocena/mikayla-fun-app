@@ -19,9 +19,9 @@ export const BrowserTabs = ({
     <Box
       display="flex"
       alignItems="center"
-      bg="gray.800"
+      bg="bg.muted"
       borderBottom="1px"
-      borderColor="gray.700"
+      borderColor="border.default"
       h="36px"
       overflowX="auto"
       overflowY="hidden"

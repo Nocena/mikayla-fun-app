@@ -27,6 +27,7 @@ import {
   LogOut,
   ChevronDown,
   MenuIcon,
+  Globe,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import logoImage from '../../assets/logo.png';
@@ -47,6 +48,7 @@ export const Sidebar = ({ activeView, onViewChange, isMobile, isOpen, onClose, o
   const menuItems = [
     { id: 'inbox', label: 'Inbox', icon: MessageSquare },
     { id: 'accounts', label: 'Accounts', icon: Users },
+    { id: 'clients', label: 'Clients', icon: Globe },
     { id: 'ai-config', label: 'AI Assistant', icon: Bot },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'settings', label: 'Settings', icon: Settings },

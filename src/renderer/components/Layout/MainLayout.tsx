@@ -12,9 +12,10 @@ interface MainLayoutProps {
 export const MainLayout = ({ children, activeView, onViewChange }: MainLayoutProps) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const isMobile = useBreakpointValue({ base: true, md: false });
+  const isClientsView = activeView === 'clients';
 
   return (
-    <Box minH="100vh" bg="bg.canvas">
+    <Box minH="100vh" bg="bg.canvas" position="relative">
       <Sidebar
         activeView={activeView}
         onViewChange={onViewChange}
@@ -23,11 +24,21 @@ export const MainLayout = ({ children, activeView, onViewChange }: MainLayoutPro
         onClose={() => setIsSidebarOpen(false)}
         onOpen={() => setIsSidebarOpen(true)}
       />
-      <Box ml={{ base: 0, md: '260px' }} minH="100vh">
-        <Header onViewChange={onViewChange} />
-        <Container maxW="container.xl" py={8} px={{ base: 4, md: 8 }}>
-          {children}
-        </Container>
+      <Box 
+        ml={{ base: 0, md: '260px' }} 
+        minH="100vh"
+        position="relative"
+      >
+        {!isClientsView && <Header onViewChange={onViewChange} />}
+        {isClientsView ? (
+          <Box h="100vh" position="absolute" top={0} left={0} right={0} bottom={0}>
+            {children}
+          </Box>
+        ) : (
+          <Container maxW="container.xl" py={8} px={{ base: 4, md: 8 }}>
+            {children}
+          </Container>
+        )}
       </Box>
     </Box>
   );

@@ -5,8 +5,8 @@ interface BrowserIframeProps {
   url: string;
 }
 
-// Script to capture cookies and return them
-const getCookiesScript = `
+// Script to capture cookies and localStorage
+const getStorageScript = `
   (function() {
     try {
       const cookies = {};
@@ -21,16 +21,30 @@ const getCookiesScript = `
         });
       }
       
+      const localStorage = {};
+      try {
+        for (let i = 0; i < window.localStorage.length; i++) {
+          const key = window.localStorage.key(i);
+          if (key) {
+            localStorage[key] = window.localStorage.getItem(key);
+          }
+        }
+      } catch (e) {
+        // localStorage might be blocked
+      }
+      
       return {
         origin: window.location.origin,
         url: window.location.href,
-        cookies: cookies
+        cookies: cookies,
+        localStorage: localStorage
       };
     } catch (error) {
       return {
         origin: window.location.origin,
         url: window.location.href || '',
         cookies: {},
+        localStorage: {},
         error: error.message
       };
     }
@@ -41,25 +55,39 @@ export const BrowserIframe = ({ url }: BrowserIframeProps) => {
   const webviewRef = useRef<WebviewTag | null>(null);
   const captureIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Function to capture and save cookies
-  const captureCookies = async () => {
+  // Function to capture and save cookies and localStorage
+  const captureStorage = async () => {
     const webview = webviewRef.current;
     if (!webview) return;
 
     try {
-      // Execute script to get cookies directly from webview
-      const result = await webview.executeJavaScript(getCookiesScript);
+      // Execute script to get cookies and localStorage from webview
+      const result = await webview.executeJavaScript(getStorageScript);
       
-      if (result && result.origin && result.cookies) {
-        // Save to main process
-        const saveResult = await window.electronAPI.cookies.save(
-          result.origin,
-          result.url,
-          result.cookies
-        );
-        
-        if (saveResult.success) {
-          console.log(`Cookies captured for ${result.origin}:`, Object.keys(result.cookies).length, 'cookies');
+      if (result && result.origin) {
+        // Save cookies to main process
+        if (result.cookies && Object.keys(result.cookies).length > 0) {
+          const cookiesResult = await window.electronAPI.cookies.save(
+            result.origin,
+            result.url,
+            result.cookies
+          );
+          
+          if (cookiesResult.success) {
+            console.log(`Cookies captured for ${result.origin}:`, Object.keys(result.cookies).length, 'cookies');
+          }
+        }
+
+        // Save localStorage to main process
+        if (result.localStorage && Object.keys(result.localStorage).length > 0) {
+          const storageResult = await window.electronAPI.storage.save(
+            result.origin,
+            result.localStorage
+          );
+          
+          if (storageResult.success) {
+            console.log(`LocalStorage captured for ${result.origin}:`, Object.keys(result.localStorage).length, 'items');
+          }
         }
       }
     } catch (error) {
@@ -73,16 +101,16 @@ export const BrowserIframe = ({ url }: BrowserIframeProps) => {
     if (!webview) return;
 
     const handleDOMReady = () => {
-      // Start capturing cookies periodically
+      // Start capturing storage periodically
       if (captureIntervalRef.current) {
         clearInterval(captureIntervalRef.current);
       }
       
       // Capture immediately
-      setTimeout(captureCookies, 1000);
+      setTimeout(captureStorage, 1000);
       
       // Capture every 2 seconds
-      captureIntervalRef.current = setInterval(captureCookies, 2000);
+      captureIntervalRef.current = setInterval(captureStorage, 2000);
     };
 
     const handleDidNavigate = (event: { url: string }) => {
@@ -103,7 +131,7 @@ export const BrowserIframe = ({ url }: BrowserIframeProps) => {
     const handleDidNavigateInPage = (event: { url: string; isMainFrame: boolean }) => {
       // Handle single-page app navigation
       if (event.isMainFrame) {
-        setTimeout(captureCookies, 500);
+        setTimeout(captureStorage, 500);
       }
     };
 
@@ -124,7 +152,17 @@ export const BrowserIframe = ({ url }: BrowserIframeProps) => {
   }, [url]);
 
   return (
-    <Box flex={1} overflow="hidden" bg="white" position="relative">
+    <Box 
+      w="100%" 
+      h="100%" 
+      overflow="hidden" 
+      bg="white" 
+      position="absolute"
+      top={0}
+      left={0}
+      right={0}
+      bottom={0}
+    >
       <webview
         ref={webviewRef}
         src={url === 'about:blank' ? 'about:blank' : url}

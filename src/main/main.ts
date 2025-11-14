@@ -10,6 +10,8 @@ let mainWindow: BrowserWindow | null = null;
 
 // Store cookies by origin
 const cookieStore = new Map<string, { url: string; cookies: Record<string, string> }>();
+// Store localStorage by origin
+const localStorageStore = new Map<string, Record<string, string>>();
 
 const createWindow = (): void => {
   // Set app icon path - check for platform-specific icons first
@@ -104,6 +106,52 @@ ipcMain.handle('cookies:delete', (_event, origin: string) => {
     return { success: true };
   } catch (error) {
     console.error('Error deleting cookies:', error);
+    return { success: false, error: String(error) };
+  }
+});
+
+// IPC handlers for localStorage operations
+ipcMain.handle('storage:save', (_event, origin: string, data: Record<string, string>) => {
+  try {
+    localStorageStore.set(origin, data);
+    console.log(`LocalStorage saved for origin: ${origin}`, data);
+    return { success: true };
+  } catch (error) {
+    console.error('Error saving localStorage:', error);
+    return { success: false, error: String(error) };
+  }
+});
+
+ipcMain.handle('storage:get', (_event, origin: string) => {
+  try {
+    const data = localStorageStore.get(origin) || {};
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error getting localStorage:', error);
+    return { success: false, error: String(error), data: {} };
+  }
+});
+
+ipcMain.handle('storage:getAll', () => {
+  try {
+    const allData: Record<string, Record<string, string>> = {};
+    localStorageStore.forEach((value, key) => {
+      allData[key] = value;
+    });
+    return { success: true, data: allData };
+  } catch (error) {
+    console.error('Error getting all localStorage:', error);
+    return { success: false, error: String(error), data: {} };
+  }
+});
+
+ipcMain.handle('storage:delete', (_event, origin: string) => {
+  try {
+    localStorageStore.delete(origin);
+    console.log(`LocalStorage deleted for origin: ${origin}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting localStorage:', error);
     return { success: false, error: String(error) };
   }
 });

@@ -6,6 +6,7 @@ import { LoginForm } from './components/Auth/LoginForm';
 import { SignUpForm } from './components/Auth/SignUpForm';
 import { InboxView } from './views/InboxView';
 import { SocialAccountsView } from './views/SocialAccountsView';
+import { ClientsView } from './views/ClientsView';
 import { AIConfigView } from './views/AIConfigView';
 import { AnalyticsView } from './views/AnalyticsView';
 import { SettingsView } from './views/SettingsView';
@@ -63,6 +64,8 @@ function AppContent() {
         return <InboxView />;
       case 'accounts':
         return <SocialAccountsView />;
+      case 'clients':
+        return <ClientsView />;
       case 'ai-config':
         return <AIConfigView />;
       case 'analytics':
