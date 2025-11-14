@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Flex,
@@ -26,13 +26,16 @@ import {
   HelpCircle,
   ChevronLeft,
   ChevronRight,
+  RefreshCw,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import { supabase, SocialAccount } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { AddAccountModal } from '../components/SocialAccounts/AddAccountModal';
-import { BrowserIframe } from '../components/BrowserContent/BrowserIframe';
+import { BrowserIframe, BrowserIframeHandle, BrowserStatus } from '../components/BrowserContent/BrowserIframe';
 import { toast } from '../lib/toast';
-import { getPlatformColor, getPlatformUrl } from '../utils/platform';
+import { getPlatformColor, getPlatformUrl, getPlatformMeta } from '../utils/platform';
 import { GradientButton } from '../components/common/GradientButton';
 
 export const ClientsView = () => {
@@ -42,10 +45,17 @@ export const ClientsView = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [isAccountsSidebarCollapsed, setIsAccountsSidebarCollapsed] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [browserStatus, setBrowserStatus] = useState<BrowserStatus>('loading');
+  const [browserError, setBrowserError] = useState<string | null>(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { user } = useAuth();
-  const gradientButtonBg = useColorModeValue('white', 'gray.900');
-  const gradientButtonColor = useColorModeValue('gray.900', 'white');
+  const collapseButtonBg = useColorModeValue('white', 'gray.900');
+  const collapseButtonColor = useColorModeValue('gray.900', 'white');
+  const browserRef = useRef<BrowserIframeHandle | null>(null);
+  const minZoom = 0.5;
+  const maxZoom = 2;
+  const zoomStep = 0.1;
 
   useEffect(() => {
     fetchAccounts();
@@ -103,6 +113,43 @@ export const ClientsView = () => {
     return getPlatformUrl(selectedAccount.platform, selectedAccount.platform_username);
   };
 
+  const handleRefresh = () => {
+    browserRef.current?.reload();
+  };
+
+  const handleZoomChange = (direction: 'in' | 'out') => {
+    setZoomLevel((prev) => {
+      const next =
+        direction === 'in'
+          ? Math.min(maxZoom, prev + zoomStep)
+          : Math.max(minZoom, prev - zoomStep);
+      const normalized = Number(next.toFixed(2));
+      browserRef.current?.setZoomFactor(normalized);
+      return normalized;
+    });
+  };
+
+  useEffect(() => {
+    if (selectedAccount) {
+      setBrowserStatus('loading');
+      setBrowserError(null);
+    }
+  }, [selectedAccount?.id]);
+
+  const selectedPlatformMeta = selectedAccount ? getPlatformMeta(selectedAccount.platform) : undefined;
+
+  const statusText = (() => {
+    if (browserStatus === 'error') return 'Unable to load content';
+    if (browserStatus === 'loading') return 'Loading content...';
+    return 'Live view';
+  })();
+
+  const statusColor = (() => {
+    if (browserStatus === 'error') return 'red.400';
+    if (browserStatus === 'loading') return 'text.muted';
+    return 'green.400';
+  })();
+
   return (
     <Flex 
       w="100%" 
@@ -137,8 +184,8 @@ export const ClientsView = () => {
           transform="translateY(-50%)"
           onClick={() => setIsAccountsSidebarCollapsed((prev) => !prev)}
           zIndex={2}
-          bg={gradientButtonBg}
-          color={gradientButtonColor}
+          bg={collapseButtonBg}
+          color={collapseButtonColor}
           borderRadius="full"
           boxShadow="lg"
           borderWidth="1px"
@@ -303,28 +350,75 @@ export const ClientsView = () => {
               borderColor="border.default"
               flexShrink={0}
             >
-              <HStack spacing={2}>
-                <Avatar
-                  size="xs"
-                  name={selectedAccount.platform_username}
-                  src={selectedAccount.profile_image_url || undefined}
-                />
-                <Text fontSize="xs" fontWeight="medium" flex={1} isTruncated>
-                  {selectedAccount.platform_username} ({selectedAccount.platform})
-                </Text>
-                {!selectedAccount.is_active && (
-                  <Badge colorScheme="red" fontSize="xs">
-                    Sync Lost
+              <Flex align="center" justify="space-between" gap={2}>
+                <HStack spacing={3} flex={1}>
+                  <Avatar
+                    size="xs"
+                    name={selectedAccount.platform_username}
+                    src={selectedAccount.profile_image_url || undefined}
+                  />
+                  <VStack align="flex-start" spacing={0} flex={1}>
+                    <Text fontSize="xs" fontWeight="medium" isTruncated>
+                      {selectedAccount.platform_username} ({selectedAccount.platform})
+                    </Text>
+                    <Text fontSize="xs" color={statusColor} noOfLines={1}>
+                      {statusText}
+                      {browserStatus === 'error' && browserError ? ` — ${browserError}` : ''}
+                    </Text>
+                  </VStack>
+                  <Badge colorScheme={getPlatformColor(selectedAccount.platform)} fontSize="xs">
+                    {selectedAccount.platform}
                   </Badge>
-                )}
-                <Button
-                  size="xs"
-                  variant="ghost"
-                  onClick={() => setSelectedAccount(null)}
-                >
-                  Close
-                </Button>
-              </HStack>
+                  {!selectedAccount.is_active && (
+                    <Badge colorScheme="red" fontSize="xs">
+                      Sync Lost
+                    </Badge>
+                  )}
+                </HStack>
+                <HStack spacing={1}>
+                  <IconButton
+                    aria-label="Refresh page"
+                    icon={<RefreshCw size={14} />}
+                    size="xs"
+                    variant="ghost"
+                    onClick={handleRefresh}
+                  />
+                  <HStack
+                    borderWidth="1px"
+                    borderColor="border.default"
+                    borderRadius="md"
+                    spacing={0}
+                    h="28px"
+                  >
+                    <IconButton
+                      aria-label="Zoom out"
+                      icon={<ZoomOut size={14} />}
+                      size="xs"
+                      variant="ghost"
+                      onClick={() => handleZoomChange('out')}
+                      isDisabled={zoomLevel <= minZoom}
+                    />
+                    <Text fontSize="xs" px={2} minW="42px" textAlign="center">
+                      {Math.round(zoomLevel * 100)}%
+                    </Text>
+                    <IconButton
+                      aria-label="Zoom in"
+                      icon={<ZoomIn size={14} />}
+                      size="xs"
+                      variant="ghost"
+                      onClick={() => handleZoomChange('in')}
+                      isDisabled={zoomLevel >= maxZoom}
+                    />
+                  </HStack>
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    onClick={() => setSelectedAccount(null)}
+                  >
+                    Close
+                  </Button>
+                </HStack>
+              </Flex>
             </Box>
             <Box 
               flex={1} 
@@ -333,7 +427,16 @@ export const ClientsView = () => {
               minH={0}
               h="100%"
             >
-              <BrowserIframe url={getSelectedUrl()} />
+              <BrowserIframe
+                ref={browserRef}
+                url={getSelectedUrl()}
+                zoomFactor={zoomLevel}
+                platformName={selectedPlatformMeta?.name}
+                onStatusChange={(status, payload) => {
+                  setBrowserStatus(status);
+                  setBrowserError(payload?.message || null);
+                }}
+              />
             </Box>
           </Box>
         ) : (

@@ -4,6 +4,7 @@ export type CreatorPlatformMeta = {
   key: CreatorPlatformKey;
   name: string;
   baseUrl: string;
+  loginUrl: string;
   colorScheme: string;
 };
 
@@ -12,24 +13,28 @@ const PLATFORM_META: Record<CreatorPlatformKey, CreatorPlatformMeta> = {
     key: 'onlyfans',
     name: 'OnlyFans',
     baseUrl: 'https://onlyfans.com',
+    loginUrl: 'https://onlyfans.com/login',
     colorScheme: 'blue',
   },
   fansly: {
     key: 'fansly',
     name: 'Fansly',
     baseUrl: 'https://fansly.com',
+    loginUrl: 'https://fansly.com/login',
     colorScheme: 'purple',
   },
   patreon: {
     key: 'patreon',
     name: 'Patreon',
     baseUrl: 'https://www.patreon.com',
+    loginUrl: 'https://www.patreon.com/login',
     colorScheme: 'orange',
   },
   herohero: {
     key: 'herohero',
     name: 'HeroHero',
     baseUrl: 'https://herohero.co',
+    loginUrl: 'https://herohero.co/login',
     colorScheme: 'teal',
   },
 };
@@ -49,13 +54,10 @@ export const getPlatformMeta = (platform: string): CreatorPlatformMeta | undefin
 
 export const getPlatformUrl = (platform: string, username?: string): string => {
   const meta = getPlatformMeta(platform);
-  const baseUrl = meta?.baseUrl ?? 'https://www.google.com';
-
-  if (meta && username) {
-    return `${meta.baseUrl}/${username}`;
+  if (!meta) {
+    return 'https://www.google.com';
   }
-
-  return baseUrl;
+  return meta.loginUrl || meta.baseUrl;
 };
 
 export const getPlatformColor = (platform: string): string => {
