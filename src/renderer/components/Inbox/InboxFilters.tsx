@@ -8,6 +8,7 @@ import {
   Icon,
 } from '@chakra-ui/react';
 import { Search } from 'lucide-react';
+import { getCreatorPlatforms } from '../../utils/platform';
 
 interface InboxFiltersProps {
   filters: {
@@ -20,6 +21,8 @@ interface InboxFiltersProps {
 }
 
 export const InboxFilters = ({ filters, onFilterChange }: InboxFiltersProps) => {
+  const platforms = getCreatorPlatforms();
+
   return (
     <Box mb={6}>
       <HStack spacing={4}>
@@ -40,10 +43,11 @@ export const InboxFilters = ({ filters, onFilterChange }: InboxFiltersProps) => 
           onChange={(e) => onFilterChange('platform', e.target.value)}
         >
           <option value="all">All Platforms</option>
-          <option value="twitter">Twitter</option>
-          <option value="facebook">Facebook</option>
-          <option value="instagram">Instagram</option>
-          <option value="linkedin">LinkedIn</option>
+          {platforms.map((platform) => (
+            <option key={platform.key} value={platform.key}>
+              {platform.name}
+            </option>
+          ))}
         </Select>
 
         <Select

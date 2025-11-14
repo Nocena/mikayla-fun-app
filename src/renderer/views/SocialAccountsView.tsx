@@ -27,6 +27,7 @@ import { Plus, Users, MoreHorizontal, Settings, MessageSquare, AlertCircle } fro
 import { supabase, SocialAccount } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { AddAccountModal } from '../components/SocialAccounts/AddAccountModal';
+import { getPlatformColor } from '../utils/platform';
 
 export const SocialAccountsView = () => {
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
@@ -118,16 +119,6 @@ export const SocialAccountsView = () => {
       .update({ last_synced_at: new Date().toISOString() })
       .eq('id', id);
     fetchAccounts();
-  };
-
-  const getPlatformColor = (platform: string) => {
-    const colors: Record<string, string> = {
-      twitter: 'twitter',
-      facebook: 'facebook',
-      instagram: 'pink',
-      linkedin: 'linkedin',
-    };
-    return colors[platform.toLowerCase()] || 'gray';
   };
 
   if (loading) {

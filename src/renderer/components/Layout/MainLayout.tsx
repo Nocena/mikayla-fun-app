@@ -13,6 +13,8 @@ export const MainLayout = ({ children, activeView, onViewChange }: MainLayoutPro
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const isMobile = useBreakpointValue({ base: true, md: false });
   const isClientsView = activeView === 'clients';
+  const isDesktop = isMobile === false;
+  const isSidebarCollapsed = isDesktop && isClientsView;
 
   return (
     <Box minH="100vh" bg="bg.canvas" position="relative">
@@ -23,9 +25,10 @@ export const MainLayout = ({ children, activeView, onViewChange }: MainLayoutPro
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         onOpen={() => setIsSidebarOpen(true)}
+        isCollapsed={isSidebarCollapsed}
       />
       <Box 
-        ml={{ base: 0, md: '260px' }} 
+        ml={{ base: 0, md: isSidebarCollapsed ? '80px' : '260px' }} 
         minH="100vh"
         position="relative"
       >

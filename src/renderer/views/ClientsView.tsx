@@ -14,44 +14,26 @@ import {
   Icon,
   Heading,
   useDisclosure,
+  IconButton,
+  Tooltip,
+  useColorModeValue,
 } from '@chakra-ui/react';
-import { Search, Plus, AlertCircle, UserPlus, HelpCircle, Globe } from 'lucide-react';
+import {
+  Search,
+  Plus,
+  AlertCircle,
+  UserPlus,
+  HelpCircle,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
 import { supabase, SocialAccount } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { AddAccountModal } from '../components/SocialAccounts/AddAccountModal';
 import { BrowserIframe } from '../components/BrowserContent/BrowserIframe';
 import { toast } from '../lib/toast';
-
-// Map platform to predefined URL
-const getPlatformUrl = (platform: string, username?: string): string => {
-  const urlMap: Record<string, string> = {
-    onlyfans: 'https://onlyfans.com',
-    twitter: 'https://twitter.com',
-    facebook: 'https://facebook.com',
-    instagram: 'https://instagram.com',
-    linkedin: 'https://linkedin.com',
-  };
-
-  const baseUrl = urlMap[platform.toLowerCase()] || 'https://www.google.com';
-  
-  // For OnlyFans, you might want to add username to URL
-  if (platform.toLowerCase() === 'onlyfans' && username) {
-    return `${baseUrl}/${username}`;
-  }
-  
-  return baseUrl;
-};
-
-const getPlatformColor = (platform: string) => {
-  const colors: Record<string, string> = {
-    onlyfans: 'blue',
-    twitter: 'twitter',
-    facebook: 'facebook',
-    instagram: 'pink',
-    linkedin: 'linkedin',
-  };
-  return colors[platform.toLowerCase()] || 'gray';
-};
+import { getPlatformColor, getPlatformUrl } from '../utils/platform';
+import { GradientButton } from '../components/common/GradientButton';
 
 export const ClientsView = () => {
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
@@ -59,8 +41,11 @@ export const ClientsView = () => {
   const [selectedAccount, setSelectedAccount] = useState<SocialAccount | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isAccountsSidebarCollapsed, setIsAccountsSidebarCollapsed] = useState(false);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { user } = useAuth();
+  const gradientButtonBg = useColorModeValue('white', 'gray.900');
+  const gradientButtonColor = useColorModeValue('gray.900', 'white');
 
   useEffect(() => {
     fetchAccounts();
@@ -131,7 +116,7 @@ export const ClientsView = () => {
     >
       {/* Left Sidebar */}
       <Box
-        w="320px"
+        w={isAccountsSidebarCollapsed ? '64px' : '320px'}
         borderRight="1px"
         borderColor="border.default"
         bg="bg.subtle"
@@ -139,97 +124,160 @@ export const ClientsView = () => {
         flexDirection="column"
         h="100vh"
         flexShrink={0}
+        position="relative"
       >
-        <Box p={4} borderBottom="1px" borderColor="border.default">
-          <Heading size="md" mb={4}>
-            Accounts
-          </Heading>
-          <InputGroup>
-            <InputLeftElement pointerEvents="none">
-              <Icon as={Search} color="text.muted" />
-            </InputLeftElement>
-            <Input
-              placeholder="Search accounts..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              bg="bg.surface"
-              borderColor="border.default"
-            />
-          </InputGroup>
-        </Box>
+        <IconButton
+          aria-label={isAccountsSidebarCollapsed ? 'Expand accounts panel' : 'Collapse accounts panel'}
+          icon={isAccountsSidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          size="sm"
+          variant="solid"
+          position="absolute"
+          top="50%"
+          right="-16px"
+          transform="translateY(-50%)"
+          onClick={() => setIsAccountsSidebarCollapsed((prev) => !prev)}
+          zIndex={2}
+          bg={gradientButtonBg}
+          color={gradientButtonColor}
+          borderRadius="full"
+          boxShadow="lg"
+          borderWidth="1px"
+          borderColor="border.default"
+        />
 
-        <VStack
-          spacing={2}
-          p={4}
-          flex={1}
-          overflowY="auto"
-          align="stretch"
-        >
-          {loading ? (
-            <Text color="text.muted">Loading accounts...</Text>
-          ) : filteredAccounts.length === 0 ? (
-            <Text color="text.muted" fontSize="sm" textAlign="center" py={8}>
-              {searchQuery ? 'No accounts found' : 'No accounts'}
-            </Text>
-          ) : (
-            filteredAccounts.map((account) => (
-              <Box
-                key={account.id}
-                p={3}
-                borderRadius="md"
-                bg={selectedAccount?.id === account.id ? 'bg.muted' : 'bg.surface'}
-                borderWidth="1px"
-                borderColor={
-                  selectedAccount?.id === account.id ? 'blue.500' : 'border.default'
-                }
-                cursor="pointer"
-                onClick={() => handleAccountClick(account)}
-                _hover={{
-                  bg: 'bg.muted',
-                  borderColor: 'border.subtle',
-                }}
-                transition="all 0.2s"
-              >
-                <Flex align="center" gap={3}>
-                  <Avatar
-                    size="sm"
-                    name={account.platform_username}
-                    src={account.profile_image_url || undefined}
-                  />
-                  <VStack align="flex-start" spacing={0} flex={1} minW={0}>
-                    <Text fontSize="sm" fontWeight="semibold" isTruncated>
-                      {account.platform_username}
-                    </Text>
-                    <HStack spacing={2}>
-                      {!account.is_active && (
-                        <Text fontSize="xs" color="red.500" fontWeight="medium">
-                          Sync Lost
+        {!isAccountsSidebarCollapsed ? (
+          <>
+            <Box p={4} borderBottom="1px" borderColor="border.default">
+              <Heading size="md" mb={4}>
+                Accounts
+              </Heading>
+              <InputGroup>
+                <InputLeftElement pointerEvents="none">
+                  <Icon as={Search} color="text.muted" />
+                </InputLeftElement>
+                <Input
+                  placeholder="Search accounts..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  bg="bg.surface"
+                  borderColor="border.default"
+                />
+              </InputGroup>
+            </Box>
+
+            <VStack
+              spacing={2}
+              p={4}
+              flex={1}
+              overflowY="auto"
+              align="stretch"
+            >
+              {loading ? (
+                <Text color="text.muted">Loading accounts...</Text>
+              ) : filteredAccounts.length === 0 ? (
+                <Text color="text.muted" fontSize="sm" textAlign="center" py={8}>
+                  {searchQuery ? 'No accounts found' : 'No accounts'}
+                </Text>
+              ) : (
+                filteredAccounts.map((account) => (
+                  <Box
+                    key={account.id}
+                    p={3}
+                    borderRadius="md"
+                    bg={selectedAccount?.id === account.id ? 'bg.muted' : 'bg.surface'}
+                    borderWidth="1px"
+                    borderColor={
+                      selectedAccount?.id === account.id ? 'blue.500' : 'border.default'
+                    }
+                    cursor="pointer"
+                    onClick={() => handleAccountClick(account)}
+                    _hover={{
+                      bg: 'bg.muted',
+                      borderColor: 'border.subtle',
+                    }}
+                    transition="all 0.2s"
+                  >
+                    <Flex align="center" gap={3}>
+                      <Avatar
+                        size="sm"
+                        name={account.platform_username}
+                        src={account.profile_image_url || undefined}
+                      />
+                      <VStack align="flex-start" spacing={0} flex={1} minW={0}>
+                        <Text fontSize="sm" fontWeight="semibold" isTruncated>
+                          {account.platform_username}
                         </Text>
-                      )}
-                      <Badge
-                        colorScheme={getPlatformColor(account.platform)}
-                        fontSize="xs"
-                      >
-                        {account.platform}
-                      </Badge>
-                    </HStack>
-                  </VStack>
-                </Flex>
-              </Box>
-            ))
-          )}
-        </VStack>
+                        <HStack spacing={2}>
+                          {!account.is_active && (
+                            <Text fontSize="xs" color="red.500" fontWeight="medium">
+                              Sync Lost
+                            </Text>
+                          )}
+                          <Badge
+                            colorScheme={getPlatformColor(account.platform)}
+                            fontSize="xs"
+                          >
+                            {account.platform}
+                          </Badge>
+                        </HStack>
+                      </VStack>
+                    </Flex>
+                  </Box>
+                ))
+              )}
+            </VStack>
 
-        <Box p={4} borderTop="1px" borderColor="border.default">
-          <Button
-            w="full"
-            leftIcon={<Plus size={18} />}
-            colorScheme="blue"
-            onClick={onOpen}
+            <Box p={4} borderTop="1px" borderColor="border.default">
+              <GradientButton leftIcon={<Plus size={18} />} onClick={onOpen}>
+                Link new account
+              </GradientButton>
+            </Box>
+          </>
+        ) : (
+          <VStack
+            spacing={3}
+            p={3}
+            flex={1}
+            align="center"
+            overflowY="auto"
+            justify="flex-start"
           >
-            Link new account
-          </Button>
-        </Box>
+            {loading ? (
+              <Text fontSize="xs" color="text.muted" textAlign="center">
+                Loading...
+              </Text>
+            ) : filteredAccounts.length === 0 ? (
+              <Text fontSize="xs" color="text.muted" textAlign="center">
+                No accounts
+              </Text>
+            ) : (
+              filteredAccounts.map((account) => (
+                <Tooltip
+                  key={account.id}
+                  label={`${account.platform_username} (${account.platform})`}
+                  placement="right"
+                >
+                  <Box
+                    borderWidth={selectedAccount?.id === account.id ? '2px' : '1px'}
+                    borderColor={selectedAccount?.id === account.id ? 'blue.500' : 'border.default'}
+                    borderRadius="full"
+                    p={1}
+                    cursor="pointer"
+                    onClick={() => handleAccountClick(account)}
+                    bg={selectedAccount?.id === account.id ? 'bg.muted' : 'transparent'}
+                    transition="all 0.2s"
+                  >
+                    <Avatar
+                      size="sm"
+                      name={account.platform_username}
+                      src={account.profile_image_url || undefined}
+                    />
+                  </Box>
+                </Tooltip>
+              ))
+            )}
+          </VStack>
+        )}
       </Box>
 
       {/* Right Content Area */}
@@ -358,14 +406,9 @@ export const ClientsView = () => {
                 </Text>
               )}
 
-              <Button
-                leftIcon={<UserPlus size={18} />}
-                colorScheme="blue"
-                onClick={onOpen}
-                mt={4}
-              >
-                Link new Creator to FansMetric
-              </Button>
+              <GradientButton leftIcon={<UserPlus size={18} />} onClick={onOpen} mt={4}>
+                Link new Creator to Mikayla
+              </GradientButton>
 
               <Button
                 variant="link"
@@ -373,10 +416,7 @@ export const ClientsView = () => {
                 colorScheme="blue"
                 size="sm"
               >
-                View the OnlyFans Client{' '}
-                <Text as="span" color="blue.400" fontWeight="bold">
-                  feature guide
-                </Text>
+                View the Creator Platform{' '}
               </Button>
             </VStack>
           </Flex>

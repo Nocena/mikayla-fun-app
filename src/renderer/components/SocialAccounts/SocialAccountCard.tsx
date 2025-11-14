@@ -13,6 +13,7 @@ import {
 import { toast } from '../../lib/toast';
 import { MoreVertical, Trash2, RefreshCw, Power } from 'lucide-react';
 import { SocialAccount } from '../../lib/supabase';
+import { getPlatformColor } from '../../utils/platform';
 
 interface SocialAccountCardProps {
   account: SocialAccount;
@@ -27,17 +28,6 @@ export const SocialAccountCard = ({
   onToggleActive,
   onSync,
 }: SocialAccountCardProps) => {
-
-  const getPlatformColor = (platform: string) => {
-    const colors: Record<string, string> = {
-      twitter: 'blue',
-      facebook: 'blue',
-      instagram: 'pink',
-      linkedin: 'linkedin',
-      tiktok: 'gray',
-    };
-    return colors[platform.toLowerCase()] || 'gray';
-  };
 
   const handleSync = () => {
     onSync(account.id);

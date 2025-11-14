@@ -11,7 +11,16 @@ import {
   Text,
 } from '@chakra-ui/react';
 import { toast } from '../../lib/toast';
-import { Twitter, Facebook, Instagram, Linkedin } from 'lucide-react';
+import { DollarSign, Heart, Star, Shield } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { getCreatorPlatforms } from '../../utils/platform';
+
+const platformIconMap: Record<string, LucideIcon> = {
+  onlyfans: DollarSign,
+  fansly: Heart,
+  patreon: Star,
+  herohero: Shield,
+};
 
 interface AddAccountModalProps {
   isOpen: boolean;
@@ -25,12 +34,11 @@ export const AddAccountModal = ({
   onAccountAdded,
 }: AddAccountModalProps) => {
 
-  const platforms = [
-    { name: 'Twitter', icon: Twitter, color: 'twitter' },
-    { name: 'Facebook', icon: Facebook, color: 'facebook' },
-    { name: 'Instagram', icon: Instagram, color: 'pink' },
-    { name: 'LinkedIn', icon: Linkedin, color: 'linkedin' },
-  ];
+  const platforms = getCreatorPlatforms().map((platform) => ({
+    name: platform.name,
+    color: platform.colorScheme,
+    icon: platformIconMap[platform.key],
+  }));
 
   const handleConnect = (platform: string) => {
     toast({

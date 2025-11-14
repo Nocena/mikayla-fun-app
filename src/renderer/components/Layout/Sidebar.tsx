@@ -17,6 +17,7 @@ import {
   DrawerOverlay,
   DrawerCloseButton,
   Image,
+  Tooltip,
 } from '@chakra-ui/react';
 import {
   MessageSquare,
@@ -39,9 +40,18 @@ interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   onOpen: () => void;
+  isCollapsed?: boolean;
 }
 
-export const Sidebar = ({ activeView, onViewChange, isMobile, isOpen, onClose, onOpen }: SidebarProps) => {
+export const Sidebar = ({
+  activeView,
+  onViewChange,
+  isMobile,
+  isOpen,
+  onClose,
+  onOpen,
+  isCollapsed = false,
+}: SidebarProps) => {
   const { user, signOut } = useAuth();
   const { colorMode, toggleColorMode } = useColorMode();
 
@@ -73,65 +83,91 @@ export const Sidebar = ({ activeView, onViewChange, isMobile, isOpen, onClose, o
         <Image
           src={logoImage}
           alt="App Logo"
-          maxH="50px"
-          maxW="200px"
+          maxH={isCollapsed ? '32px' : '50px'}
+          maxW={isCollapsed ? '48px' : '200px'}
         />
       </Flex>
 
-      <VStack spacing={1} p={4} flex={1} align="stretch">
+      <VStack spacing={1} p={3} flex={1} align="stretch">
         {menuItems.map((item) => (
-          <Box
-            key={item.id}
-            position="relative"
-            borderRadius="8px"
-            p="1px"
-            bgGradient={activeView === item.id ? "linear(to-r, cyan.400, purple.500)" : "transparent"}
-            _hover={{
-              bgGradient: "linear(to-r, cyan.400, purple.500)",
-            }}
-            transition="all 0.2s"
-          >
-            <Button
-              leftIcon={<Icon as={item.icon} />}
-              justifyContent="flex-start"
-              variant="ghost"
-              onClick={() => handleNavClick(item.id)}
-              size="lg"
-              fontWeight="medium"
-              w="full"
-              borderRadius="7px"
-              bg={colorMode === 'dark' ? 'gray.900' : 'white'}
-              color={activeView === item.id ? (colorMode === 'dark' ? 'white' : 'gray.900') : 'gray.500'}
+          <Tooltip key={item.id} label={isCollapsed ? item.label : undefined} placement="right">
+            <Box
+              position="relative"
+              borderRadius="8px"
+              p="1px"
+              bgGradient={activeView === item.id ? "linear(to-r, cyan.400, purple.500)" : "transparent"}
               _hover={{
-                bg: colorMode === 'dark' ? 'gray.900' : 'white',
-                color: colorMode === 'dark' ? 'white' : 'gray.900',
-                opacity: 0.9,
+                bgGradient: "linear(to-r, cyan.400, purple.500)",
               }}
-              _active={{
-                bg: colorMode === 'dark' ? 'gray.900' : 'white',
-              }}
+              transition="all 0.2s"
             >
-              {item.label}
-            </Button>
-          </Box>
+              {isCollapsed ? (
+                <IconButton
+                  aria-label={item.label}
+                  icon={<Icon as={item.icon} />}
+                  onClick={() => handleNavClick(item.id)}
+                  size="lg"
+                  w="full"
+                  h="56px"
+                  borderRadius="7px"
+                  bg={colorMode === 'dark' ? 'gray.900' : 'white'}
+                  color={activeView === item.id ? (colorMode === 'dark' ? 'white' : 'gray.900') : 'gray.500'}
+                  _hover={{
+                    bg: colorMode === 'dark' ? 'gray.900' : 'white',
+                    color: colorMode === 'dark' ? 'white' : 'gray.900',
+                    opacity: 0.9,
+                  }}
+                  _active={{
+                    bg: colorMode === 'dark' ? 'gray.900' : 'white',
+                  }}
+                />
+              ) : (
+                <Button
+                  leftIcon={<Icon as={item.icon} />}
+                  justifyContent="flex-start"
+                  variant="ghost"
+                  onClick={() => handleNavClick(item.id)}
+                  size="lg"
+                  fontWeight="medium"
+                  w="full"
+                  borderRadius="7px"
+                  bg={colorMode === 'dark' ? 'gray.900' : 'white'}
+                  color={activeView === item.id ? (colorMode === 'dark' ? 'white' : 'gray.900') : 'gray.500'}
+                  _hover={{
+                    bg: colorMode === 'dark' ? 'gray.900' : 'white',
+                    color: colorMode === 'dark' ? 'white' : 'gray.900',
+                    opacity: 0.9,
+                  }}
+                  _active={{
+                    bg: colorMode === 'dark' ? 'gray.900' : 'white',
+                  }}
+                >
+                  {item.label}
+                </Button>
+              )}
+            </Box>
+          </Tooltip>
         ))}
       </VStack>
 
       <Box p={4} borderTop="1px" borderColor="border.default">
         <Menu>
           <MenuButton
-            as={Button}
+            as={isCollapsed ? IconButton : Button}
             variant="ghost"
             w="full"
-            rightIcon={<ChevronDown size={16} />}
+            rightIcon={isCollapsed ? undefined : <ChevronDown size={16} />}
+            aria-label="Account menu"
           >
-            <Flex align="center" gap={3}>
-              <Avatar size="sm" name={user?.email} />
-              <Box textAlign="left" flex={1} overflow="hidden">
-                <Text fontSize="sm" fontWeight="medium" isTruncated>
-                  {user?.email}
-                </Text>
-              </Box>
+            <Flex align="center" gap={isCollapsed ? 0 : 3} justify={isCollapsed ? 'center' : 'flex-start'}>
+              <Avatar size="sm" name={user?.email || undefined} />
+              {!isCollapsed && (
+                <Box textAlign="left" flex={1} overflow="hidden">
+                  <Text fontSize="sm" fontWeight="medium" isTruncated>
+                    {user?.email}
+                  </Text>
+                </Box>
+              )}
             </Flex>
           </MenuButton>
           <MenuList>
@@ -188,7 +224,7 @@ export const Sidebar = ({ activeView, onViewChange, isMobile, isOpen, onClose, o
 
   return (
     <Box
-      w="260px"
+      w={isCollapsed ? '80px' : '260px'}
       h="100vh"
       bg="bg.subtle"
       borderRight="1px"
