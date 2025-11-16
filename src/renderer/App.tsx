@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { ChakraProvider, ColorModeScript } from '@chakra-ui/react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NavigationProvider, useNavigation } from './contexts/NavigationContext';
+import { AccountStatusProvider } from './contexts/AccountStatusContext';
+import { SocialAccountsProvider } from './contexts/SocialAccountsContext';
+import { GlobalAccountWebviews } from './components/Clients/GlobalAccountWebviews';
 import { MainLayout } from './components/Layout/MainLayout';
 import { LoginForm } from './components/Auth/LoginForm';
 import { SignUpForm } from './components/Auth/SignUpForm';
@@ -79,9 +82,13 @@ function AppContent() {
   };
 
   return (
-    <MainLayout activeView={activeView} onViewChange={setActiveView}>
-      {renderView()}
-    </MainLayout>
+    <>
+      {/* Global background webviews for all accounts */}
+      <GlobalAccountWebviews />
+      <MainLayout activeView={activeView} onViewChange={(view) => setActiveView(view as any)}>
+        {renderView()}
+      </MainLayout>
+    </>
   );
 }
 
@@ -91,7 +98,11 @@ function App() {
       <ColorModeScript initialColorMode={theme.config.initialColorMode} />
       <AuthProvider>
         <NavigationProvider>
-          <AppContent />
+          <AccountStatusProvider>
+            <SocialAccountsProvider>
+              <AppContent />
+            </SocialAccountsProvider>
+          </AccountStatusProvider>
         </NavigationProvider>
       </AuthProvider>
     </ChakraProvider>

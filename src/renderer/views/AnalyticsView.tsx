@@ -24,46 +24,22 @@ import {
   Minus,
   Users,
 } from 'lucide-react';
-import { supabase, Analytics, SocialAccount } from '../lib/supabase';
+import { supabase, Analytics } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useSocialAccounts } from '../contexts/SocialAccountsContext';
 import { StatCard } from '../components/Analytics/StatCard';
 
 export const AnalyticsView = () => {
   const [analytics, setAnalytics] = useState<Analytics[]>([]);
-  const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<string>('all');
   const [dateRange, setDateRange] = useState<string>('7');
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  
-
-  useEffect(() => {
-    fetchAccounts();
-  }, [user]);
+  const { accounts } = useSocialAccounts();
 
   useEffect(() => {
     fetchAnalytics();
-  }, [selectedAccount, dateRange, accounts]);
-
-  const fetchAccounts = async () => {
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from('social_accounts')
-      .select('*')
-      .eq('user_id', user.id);
-
-    if (error) {
-      toast({
-        title: 'Error loading accounts',
-        description: error.message,
-        status: 'error',
-        
-      });
-    } else {
-      setAccounts(data || []);
-    }
-  };
+  }, [selectedAccount, dateRange, accounts, user?.id]);
 
   const fetchAnalytics = async () => {
     if (accounts.length === 0) {

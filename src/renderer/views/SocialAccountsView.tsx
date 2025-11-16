@@ -28,12 +28,15 @@ import { supabase, SocialAccount } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { AddAccountModal } from '../components/SocialAccounts/AddAccountModal';
 import { getPlatformColor } from '../utils/platform';
+import { useAccountStatus } from '../contexts/AccountStatusContext';
+import { AccountWebviewManager } from '../components/Clients/AccountWebviewManager';
 
 export const SocialAccountsView = () => {
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { user } = useAuth();
+  const { statusById } = useAccountStatus();
   
 
   useEffect(() => {
@@ -126,7 +129,9 @@ export const SocialAccountsView = () => {
   }
 
   return (
-    <Box>
+    <Box position="relative">
+      {/* Background webviews for each account to keep sessions and run JS (e.g., /me sync checks) */}
+      <AccountWebviewManager accounts={accounts} />
       <Flex mb={6} justify="space-between" align="center">
         <Box>
           <Heading size="lg" mb={1}>Accounts</Heading>
@@ -185,14 +190,22 @@ export const SocialAccountsView = () => {
                 <Tr key={account.id} _hover={{ bg: 'bg.subtle' }}>
                   <Td>
                     <Flex align="center" gap={2}>
-                      {account.is_active ? (
-                        <Badge colorScheme="green" fontSize="xs">Active</Badge>
-                      ) : (
-                        <Flex align="center" gap={1}>
-                          <Icon as={AlertCircle} boxSize={4} color="red.500" />
-                          <Text fontSize="xs" color="red.500" fontWeight="medium">Lost</Text>
-                        </Flex>
-                      )}
+                      <Badge
+                        colorScheme={
+                          statusById[account.id] === 'synced'
+                            ? 'green'
+                            : statusById[account.id] === 'lost'
+                            ? 'red'
+                            : 'yellow'
+                        }
+                        fontSize="xs"
+                      >
+                        {statusById[account.id] === 'synced'
+                          ? 'Synced'
+                          : statusById[account.id] === 'lost'
+                          ? 'Sync lost'
+                          : 'Syncing...'}
+                      </Badge>
                     </Flex>
                   </Td>
                   <Td>

@@ -38,9 +38,11 @@ import { BrowserIframe, BrowserIframeHandle, BrowserStatus } from '../components
 import { toast } from '../lib/toast';
 import { getPlatformColor, getPlatformUrl, getPlatformMeta } from '../utils/platform';
 import { GradientButton } from '../components/common/GradientButton';
+import { useAccountStatus } from '../contexts/AccountStatusContext';
+import { useSocialAccounts } from '../contexts/SocialAccountsContext';
 
 export const ClientsView = () => {
-  const [accounts, setAccounts] = useState<SocialAccount[]>([]);
+  const { accounts, loading: accountsLoading, refresh: refreshAccounts } = useSocialAccounts();
   const [filteredAccounts, setFilteredAccounts] = useState<SocialAccount[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<SocialAccount | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,16 +54,13 @@ export const ClientsView = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { user } = useAuth();
   const { selectedAccountId, setSelectedAccountId, pendingAccount, setPendingAccount } = useNavigation();
+  const { statusById } = useAccountStatus();
   const collapseButtonBg = useColorModeValue('white', 'gray.900');
   const collapseButtonColor = useColorModeValue('gray.900', 'white');
   const browserRef = useRef<BrowserIframeHandle | null>(null);
   const minZoom = 0.5;
   const maxZoom = 2;
   const zoomStep = 0.1;
-
-  useEffect(() => {
-    fetchAccounts();
-  }, [user]);
 
   // When accounts change or a selectedAccountId is provided via navigation, auto-select it
   useEffect(() => {
@@ -90,35 +89,12 @@ export const ClientsView = () => {
     }
   }, [searchQuery, accounts]);
 
-  const fetchAccounts = async () => {
-    if (!user) return;
-
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('social_accounts')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      toast({
-        title: 'Error loading accounts',
-        description: error.message,
-        status: 'error',
-      });
-    } else {
-      setAccounts(data || []);
-      setFilteredAccounts(data || []);
-    }
-    setLoading(false);
-  };
-
   const handleAccountClick = (account: SocialAccount) => {
     setSelectedAccount(account);
   };
 
   const handleAccountAdded = () => {
-    fetchAccounts();
+    refreshAccounts();
     onClose();
   };
 
@@ -221,7 +197,7 @@ export const ClientsView = () => {
                 setPendingAccount(null);
                 setSelectedAccountId(data.id);
                 toast({ title: 'OnlyFans linked', status: 'success' });
-                fetchAccounts();
+                refreshAccounts();
               }
             } else if (selectedAccount) {
               const { error } = await supabase
@@ -236,7 +212,7 @@ export const ClientsView = () => {
               if (!error) {
                 setSelectedAccountId(selectedAccount.id);
                 toast({ title: 'OnlyFans linked', status: 'success' });
-                fetchAccounts();
+                refreshAccounts();
               }
             }
           }
@@ -399,6 +375,13 @@ export const ClientsView = () => {
                       <VStack align="flex-start" spacing={0} flex={1} minW={0}>
                         <Text fontSize="sm" fontWeight="semibold" isTruncated>
                           {account.platform_username}
+                        </Text>
+                        <Text fontSize="xs" color="text.muted">
+                          {statusById[account.id] === 'synced'
+                            ? 'Synced'
+                            : statusById[account.id] === 'lost'
+                            ? 'Sync lost'
+                            : 'Syncing...'}
                         </Text>
                         <HStack spacing={2}>
                           {!account.is_active && (
