@@ -1,4 +1,5 @@
 import { ipcMain, session } from 'electron';
+import { requestHeadersStore } from './stores.js';
 
 export const CHROME_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.161 Safari/537.36';
@@ -33,6 +34,17 @@ export function configureChromeLikeHeadersForPartition(partition: string, uaOver
       callback({ requestHeaders: headers });
     });
     configuredPartitions.add(partition);
+
+    ses.webRequest.onBeforeSendHeaders(
+      { urls: ["https://onlyfans.com/api2/v2/users/me*"] },
+      (details, callback) => {
+        // Persist the latest headers for this partition
+        try {
+          requestHeadersStore.set(partition, { ...details.requestHeaders });
+        } catch {}
+        callback({ requestHeaders: details.requestHeaders });
+      }
+    );
   } catch (e) {
     // swallow
   }

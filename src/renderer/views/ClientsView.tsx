@@ -51,7 +51,7 @@ export const ClientsView = () => {
   const [browserError, setBrowserError] = useState<string | null>(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { user } = useAuth();
-  const { selectedAccountId, setSelectedAccountId } = useNavigation();
+  const { selectedAccountId, setSelectedAccountId, pendingAccount, setPendingAccount } = useNavigation();
   const collapseButtonBg = useColorModeValue('white', 'gray.900');
   const collapseButtonColor = useColorModeValue('gray.900', 'white');
   const browserRef = useRef<BrowserIframeHandle | null>(null);
@@ -150,10 +150,104 @@ export const ClientsView = () => {
     }
   }, [selectedAccount?.id]);
 
-  const selectedPlatformMeta = selectedAccount ? getPlatformMeta(selectedAccount.platform) : undefined;
+  const linking = !!pendingAccount;
+  const selectedPlatformMeta = selectedAccount
+    ? getPlatformMeta(selectedAccount.platform)
+    : (linking ? getPlatformMeta(pendingAccount!.platform) : undefined);
   const selectedPartitionName = selectedAccount
     ? `persist:${selectedAccount.platform}-${selectedAccount.id}`
-    : 'persist:default';
+    : (linking ? `persist:${pendingAccount!.platform}-${pendingAccount!.id}` : 'persist:default');
+  const linkingUrl = linking && selectedPlatformMeta ? selectedPlatformMeta.loginUrl : '';
+
+  // Poll OnlyFans auth during linking
+  useEffect(() => {
+    if (!linking || !pendingAccount || pendingAccount.platform !== 'onlyfans') return;
+    let timer: any;
+    const part = `persist:${pendingAccount.platform}-${pendingAccount.id}`;
+    const tick = async () => {
+      try {
+        // Read latest captured request headers for this partition from main (may include cookies, x-bc, etc.)
+        const hdrRes = await window.electronAPI.headers.get(part);
+        const rawHeaders = (hdrRes.success && hdrRes.data) ? hdrRes.data : {};
+        // Filter out forbidden headers for browser fetch (cookie, host, origin, referer, connection, content-length, sec-*, proxy-*)
+        const allowedHeaders: Record<string, string> = {};
+        Object.entries(rawHeaders).forEach(([k, v]) => {
+          const key = String(k);
+          if (!/^(cookie|host|origin|referer|connection|content-length|sec-|proxy-)/i.test(key)) {
+            allowedHeaders[key] = String(v as any);
+          }
+        });
+
+        // Execute fetch from inside the webview context so cookies/session are used naturally, and include allowed captured headers
+        const meRes = await browserRef.current?.executeScript(`
+          (async () => {
+            try {
+              const headers = ${JSON.stringify(allowedHeaders)};
+              const res = await fetch('https://onlyfans.com/api2/v2/users/me', {
+                method: 'GET',
+                credentials: 'include',
+                headers
+              });
+              const text = await res.text();
+              let data = null;
+              try { data = JSON.parse(text); } catch { data = { raw: text }; }
+              return { ok: res.ok, status: res.status, data };
+            } catch (e) {
+              return { ok: false, error: String(e) };
+            }
+          })();
+        `);
+        if (meRes && meRes.ok && meRes.data && (meRes.data.isAuth === true || meRes.data.is_auth === true)) {
+          const ofId = meRes.data.id;
+          const username = meRes.data.username || '';
+          const avatar = meRes.data.avatar || null;
+          if (user) {
+            if (pendingAccount) {
+              // Create new account row now that we have platform_user_id
+              const { data, error } = await supabase
+                .from('social_accounts')
+                .insert({
+                  id: pendingAccount.id,
+                  user_id: user.id,
+                  platform: 'onlyfans',
+                  platform_user_id: String(ofId),
+                  platform_username: username,
+                  profile_image_url: avatar,
+                  is_active: true,
+                })
+                .select('id')
+                .single();
+              if (!error && data?.id) {
+                setPendingAccount(null);
+                setSelectedAccountId(data.id);
+                toast({ title: 'OnlyFans linked', status: 'success' });
+                fetchAccounts();
+              }
+            } else if (selectedAccount) {
+              const { error } = await supabase
+                .from('social_accounts')
+                .update({
+                  platform_user_id: String(ofId),
+                  platform_username: username,
+                  profile_image_url: avatar,
+                  is_active: true,
+                })
+                .eq('id', selectedAccount.id);
+              if (!error) {
+                setSelectedAccountId(selectedAccount.id);
+                toast({ title: 'OnlyFans linked', status: 'success' });
+                fetchAccounts();
+              }
+            }
+          }
+        }
+      } catch {}
+    };
+    timer = setInterval(tick, 1000);
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [linking, pendingAccount?.id, pendingAccount?.platform, selectedAccount?.id, selectedAccount?.platform, selectedPartitionName, user]);
 
   const statusText = (() => {
     if (browserStatus === 'error') return 'Unable to load content';
@@ -236,6 +330,41 @@ export const ClientsView = () => {
               overflowY="auto"
               align="stretch"
             >
+              {/* Ephemeral \"New Account\" placeholder during linking */}
+              {linking && pendingAccount && (
+                <Box
+                  key={`pending-${pendingAccount.id}`}
+                  p={3}
+                  borderRadius="md"
+                  bg={'bg.surface'}
+                  borderWidth="1px"
+                  borderColor={'blue.500'}
+                  cursor="pointer"
+                  onClick={() => {
+                    // focus linking preview
+                    setSelectedAccount(null);
+                  }}
+                  _hover={{
+                    bg: 'bg.muted',
+                    borderColor: 'border.subtle',
+                  }}
+                  transition="all 0.2s"
+                >
+                  <Flex align="center" gap={3}>
+                    <Avatar size="sm" name={'New Account'} />
+                    <VStack align="flex-start" spacing={0} flex={1} minW={0}>
+                      <Text fontSize="sm" fontWeight="semibold" isTruncated>
+                        New Account
+                      </Text>
+                      <HStack spacing={2}>
+                        <Badge colorScheme={getPlatformColor(pendingAccount.platform)} fontSize="xs">
+                          {pendingAccount.platform}
+                        </Badge>
+                      </HStack>
+                    </VStack>
+                  </Flex>
+                </Box>
+              )}
               {loading ? (
                 <Text color="text.muted">Loading accounts...</Text>
               ) : filteredAccounts.length === 0 ? (
@@ -306,6 +435,27 @@ export const ClientsView = () => {
             overflowY="auto"
             justify="flex-start"
           >
+            {/* Ephemeral placeholder in collapsed view */}
+            {linking && pendingAccount && (
+              <Tooltip
+                key={`pending-${pendingAccount.id}`}
+                label={`New Account (${pendingAccount.platform})`}
+                placement="right"
+              >
+                <Box
+                  borderWidth={selectedAccount ? '1px' : '2px'}
+                  borderColor={'blue.500'}
+                  borderRadius="full"
+                  p={1}
+                  cursor="pointer"
+                  onClick={() => setSelectedAccount(null)}
+                  bg={!selectedAccount ? 'bg.muted' : 'transparent'}
+                  transition="all 0.2s"
+                >
+                  <Avatar size="sm" name={'New Account'} />
+                </Box>
+              </Tooltip>
+            )}
             {loading ? (
               <Text fontSize="xs" color="text.muted" textAlign="center">
                 Loading...
@@ -352,7 +502,7 @@ export const ClientsView = () => {
         overflow="hidden"
         h="100vh"
       >
-        {selectedAccount ? (
+        {selectedAccount || linking ? (
           // Show webview when account is selected
           <Box 
             display="flex" 
@@ -371,22 +521,24 @@ export const ClientsView = () => {
                 <HStack spacing={3} flex={1}>
                   <Avatar
                     size="xs"
-                    name={selectedAccount.platform_username}
-                    src={selectedAccount.profile_image_url || undefined}
+                    name={selectedAccount ? selectedAccount.platform_username : 'Linking'}
+                    src={selectedAccount ? (selectedAccount.profile_image_url || undefined) : undefined}
                   />
                   <VStack align="flex-start" spacing={0} flex={1}>
                     <Text fontSize="xs" fontWeight="medium" isTruncated>
-                      {selectedAccount.platform_username} ({selectedAccount.platform})
+                      {selectedAccount
+                        ? `${selectedAccount.platform_username} (${selectedAccount.platform})`
+                        : `Linking OnlyFans...`}
                     </Text>
                     <Text fontSize="xs" color={statusColor} noOfLines={1}>
                       {statusText}
                       {browserStatus === 'error' && browserError ? ` — ${browserError}` : ''}
                     </Text>
                   </VStack>
-                  <Badge colorScheme={getPlatformColor(selectedAccount.platform)} fontSize="xs">
-                    {selectedAccount.platform}
+                  <Badge colorScheme={getPlatformColor(selectedAccount ? selectedAccount.platform : 'onlyfans')} fontSize="xs">
+                    {selectedAccount ? selectedAccount.platform : 'onlyfans'}
                   </Badge>
-                  {!selectedAccount.is_active && (
+                  {selectedAccount && !selectedAccount.is_active && (
                     <Badge colorScheme="red" fontSize="xs">
                       Sync Lost
                     </Badge>
@@ -446,7 +598,7 @@ export const ClientsView = () => {
             >
               <BrowserIframe
                 ref={browserRef}
-                url={getSelectedUrl()}
+                url={selectedAccount ? getSelectedUrl() : linkingUrl}
                 zoomFactor={zoomLevel}
                 platformName={selectedPlatformMeta?.name}
                 partitionName={selectedPartitionName}

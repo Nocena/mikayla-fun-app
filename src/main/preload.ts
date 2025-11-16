@@ -38,4 +38,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     get: (key: string) => ipcRenderer.invoke('scripts:get', key),
     clear: (key: string) => ipcRenderer.invoke('scripts:clear', key),
   },
+  // Request headers per partition
+  headers: {
+    get: (partition: string) => ipcRenderer.invoke('headers:get', partition),
+    getAll: () => ipcRenderer.invoke('headers:getAll'),
+    delete: (partition: string) => ipcRenderer.invoke('headers:delete', partition),
+  },
+  onlyfans: {
+    getMe: (partition: string) => ipcRenderer.invoke('of:getMe', partition),
+  },
 });

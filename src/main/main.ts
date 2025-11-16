@@ -4,6 +4,8 @@ import { configureDefaultPartitions, registerSessionIpcHandlers } from './sessio
 import { registerCookieIpcHandlers } from './ipc/cookies.js';
 import { registerStorageIpcHandlers } from './ipc/storage.js';
 import { registerScriptsIpcHandlers } from './ipc/scripts.js';
+import { registerHeadersIpcHandlers } from './ipc/headers.js';
+import { registerOnlyfansIpcHandlers } from './ipc/onlyfans.js';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -14,6 +16,8 @@ app.whenReady().then(() => {
   registerCookieIpcHandlers();
   registerStorageIpcHandlers();
   registerScriptsIpcHandlers();
+  registerHeadersIpcHandlers();
+  registerOnlyfansIpcHandlers();
 
   mainWindow = createMainWindow();
 

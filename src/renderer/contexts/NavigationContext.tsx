@@ -7,6 +7,8 @@ interface NavigationContextType {
   setActiveView: (view: ViewId) => void;
   selectedAccountId: string | null;
   setSelectedAccountId: (id: string | null) => void;
+  pendingAccount: { id: string; platform: string; platformName?: string; platform_username?: string } | null;
+  setPendingAccount: (acc: { id: string; platform: string; platformName?: string; platform_username?: string } | null) => void;
 }
 
 const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
@@ -14,7 +16,7 @@ const NavigationContext = createContext<NavigationContextType | undefined>(undef
 export const useNavigation = () => {
   const ctx = useContext(NavigationContext);
   if (!ctx) {
-    throw new Error('useNavigation must be used within NavigationProvider');
+    throw new Error('useNavigation must be used within an AuthProvider');
   }
   return ctx;
 };
@@ -22,14 +24,17 @@ export const useNavigation = () => {
 export const NavigationProvider = ({ children }: { children: ReactNode }) => {
   const [activeView, setActiveView] = useState<ViewId>('inbox');
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [pendingAccount, setPendingAccount] = useState<{ id: string; platform: string; platformName?: string; platform_username?: string } | null>(null);
 
   return (
     <NavigationContext.Provider
       value={{
-        activeView,
-        setActiveView,
+        activeView: activeView,
+        setActiveView: setActiveView,
         selectedAccountId,
         setSelectedAccountId,
+        pendingAccount,
+        setPendingAccount,
       }}
     >
       {children}

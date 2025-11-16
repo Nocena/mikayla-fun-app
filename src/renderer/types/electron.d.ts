@@ -6,6 +6,14 @@ export interface ElectronAPI {
     get: (key: string) => Promise<{ success: boolean; data: any[]; error?: string }>;
     clear: (key: string) => Promise<{ success: boolean; error?: string }>;
   };
+  headers: {
+    get: (partition: string) => Promise<{ success: boolean; data: Record<string, any> | null }>;
+    getAll: () => Promise<{ success: boolean; data: Record<string, Record<string, any>> | undefined }>;
+    delete: (partition: string) => Promise<{ success: boolean }>;
+  };
+  onlyfans: {
+    getMe: (partition: string) => Promise<{ success: boolean; status?: number; data?: any; error?: string }>;
+  };
   cookies: {
     save: (origin: string, url: string, cookies: Record<string, string>) => Promise<{ success: boolean; error?: string }>;
     get: (origin: string) => Promise<{ success: boolean; data: { url: string; cookies: Record<string, string> } | null; error?: string }>;

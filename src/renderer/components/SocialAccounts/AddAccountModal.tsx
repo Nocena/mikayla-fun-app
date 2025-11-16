@@ -14,7 +14,6 @@ import { toast } from '../../lib/toast';
 import { DollarSign, Heart, Star, Shield } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { getCreatorPlatforms } from '../../utils/platform';
-import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigation } from '../../contexts/NavigationContext';
 
@@ -37,13 +36,14 @@ export const AddAccountModal = ({
   onAccountAdded,
 }: AddAccountModalProps) => {
   const { user } = useAuth();
-  const { setActiveView, setSelectedAccountId } = useNavigation();
+  const { setActiveView, setSelectedAccountId, setPendingAccount } = useNavigation();
 
   const platforms = getCreatorPlatforms().map((platform) => ({
     key: platform.key,
     name: platform.name,
     color: platform.colorScheme,
     icon: platformIconMap[platform.key],
+    isEnabled: platform.key === 'onlyfans',
   }));
 
   const handleConnect = async (platformName: string, platformKey: string) => {
@@ -56,45 +56,19 @@ export const AddAccountModal = ({
       return;
     }
 
-    const placeholderPlatformUserId =
+    // Generate a stable UUID to use as the local app's account id and for the webview partition
+    const newAccountId =
       (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
         ? (crypto as any).randomUUID()
         : `${platformKey}-${Date.now()}`;
 
-    // Create a placeholder social account row for this user and platform
-    const { data, error } = await supabase
-      .from('social_accounts')
-      .insert({
-        user_id: user.id,
-        platform: platformKey,
-        platform_user_id: placeholderPlatformUserId,
-        platform_username: '',
-        is_active: false,
-      })
-      .select('id')
-      .single();
-
-    if (error) {
-      toast({
-        title: 'Failed to create account',
-        description: error.message,
-        status: 'error',
-      });
-      return;
-    }
-
-    onAccountAdded();
     onClose();
-
-    // Navigate to Clients, and select the created account to show login page
-    setSelectedAccountId(data.id);
+    // Start ephemeral linking flow (no DB insert until we have platform_user_id)
+    setPendingAccount({ id: String(newAccountId), platform: platformKey, platformName, platform_username: '' });
+    // Ensure no DB account is pre-selected
+    setSelectedAccountId(null);
     setActiveView('clients');
-
-    toast({
-      title: 'Account created',
-      description: `Opening ${platformName} login...`,
-      status: 'success',
-    });
+    toast({ title: `Opening ${platformName} login...`, status: 'info' });
   };
 
   return (
@@ -112,10 +86,14 @@ export const AddAccountModal = ({
                 size="lg"
                 leftIcon={<Icon as={platform.icon} />}
                 colorScheme={platform.color}
-                onClick={() => handleConnect(platform.name, platform.key)}
+                onClick={() => platform.isEnabled && handleConnect(platform.name, platform.key)}
+                isDisabled={!platform.isEnabled}
                 justifyContent="flex-start"
               >
-                <Text ml={2}>Connect {platform.name}</Text>
+                <Text ml={2}>
+                  Connect {platform.name}
+                  {!platform.isEnabled ? ' (coming soon)' : ''}
+                </Text>
               </Button>
             ))}
           </VStack>
