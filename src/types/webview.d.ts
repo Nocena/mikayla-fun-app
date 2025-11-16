@@ -7,6 +7,7 @@ declare namespace JSX {
         webpreferences?: string;
         partition?: string;
         useragent?: string;
+        preload?: string;
       },
       WebviewTag
     >;

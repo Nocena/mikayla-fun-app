@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ChakraProvider, ColorModeScript } from '@chakra-ui/react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { NavigationProvider, useNavigation } from './contexts/NavigationContext';
 import { MainLayout } from './components/Layout/MainLayout';
 import { LoginForm } from './components/Auth/LoginForm';
 import { SignUpForm } from './components/Auth/SignUpForm';
@@ -44,7 +45,7 @@ function AuthScreen() {
 
 function AppContent() {
   const { user, loading } = useAuth();
-  const [activeView, setActiveView] = useState('inbox');
+  const { activeView, setActiveView } = useNavigation();
 
   if (loading) {
     return (
@@ -89,7 +90,9 @@ function App() {
     <ChakraProvider theme={theme}>
       <ColorModeScript initialColorMode={theme.config.initialColorMode} />
       <AuthProvider>
-        <AppContent />
+        <NavigationProvider>
+          <AppContent />
+        </NavigationProvider>
       </AuthProvider>
     </ChakraProvider>
   );

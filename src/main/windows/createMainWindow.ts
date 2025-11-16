@@ -31,6 +31,9 @@ export function createMainWindow(): BrowserWindow {
       nodeIntegration: false,
       contextIsolation: true,
       webviewTag: true,
+      additionalArguments: [
+        `--webview-preload=${join(__dirname, '../webviewPreload.cjs')}`,
+      ],
     },
   };
 

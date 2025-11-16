@@ -1,12 +1,15 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { Box, Button, Flex, Spinner, Text, Icon, Link } from '@chakra-ui/react';
 import { AlertTriangle } from 'lucide-react';
+import { getStorageScript } from '../../scripts/storage';
 
 export type BrowserStatus = 'loading' | 'ready' | 'error';
 
 export interface BrowserIframeHandle {
   reload: () => void;
   setZoomFactor: (factor: number) => void;
+  executeScript: (code: string) => Promise<any>;
+  executeScripts: (scripts: Array<{ id: string; code: string }>) => Promise<Array<{ id: string; result?: any; error?: string }>>;
 }
 
 interface BrowserIframeProps {
@@ -14,58 +17,20 @@ interface BrowserIframeProps {
   zoomFactor?: number;
   onStatusChange?: (status: BrowserStatus, payload?: { message?: string }) => void;
   platformName?: string;
+  userId?: string;
+  partitionName?: string;
 }
 
-// Script to capture cookies and localStorage
-const getStorageScript = `
-  (function() {
-    try {
-      const cookies = {};
-      const cookieString = document.cookie || '';
-      
-      if (cookieString) {
-        cookieString.split(';').forEach(cookie => {
-          const [name, ...rest] = cookie.trim().split('=');
-          if (name) {
-            cookies[name] = rest.join('=') || '';
-          }
-        });
-      }
-      
-      const localStorage = {};
-      try {
-        for (let i = 0; i < window.localStorage.length; i++) {
-          const key = window.localStorage.key(i);
-          if (key) {
-            localStorage[key] = window.localStorage.getItem(key);
-          }
-        }
-      } catch (e) {
-        // localStorage might be blocked
-      }
-      
-      return {
-        origin: window.location.origin,
-        url: window.location.href,
-        cookies: cookies,
-        localStorage: localStorage
-      };
-    } catch (error) {
-      return {
-        origin: window.location.origin,
-        url: window.location.href || '',
-        cookies: {},
-        localStorage: {},
-        error: error.message
-      };
-    }
-  })();
-`;
 
 export const BrowserIframe = forwardRef<BrowserIframeHandle, BrowserIframeProps>(
-({ url, zoomFactor = 1, onStatusChange, platformName }, ref) => {
+({ url, zoomFactor = 1, onStatusChange, platformName, userId, partitionName: explicitPartitionName }, ref) => {
   const webviewRef = useRef<WebviewTag | null>(null);
   const friendlyPlatformName = platformName || 'this page';
+  const CHROME_UA =
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.161 Safari/537.36';
+  const partitionName = explicitPartitionName
+    ? explicitPartitionName
+    : (platformName && userId ? `persist:${platformName}-${userId}` : 'persist:default');
 
   const captureIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [status, setStatus] = useState<BrowserStatus>('loading');
@@ -101,6 +66,34 @@ export const BrowserIframe = forwardRef<BrowserIframeHandle, BrowserIframeProps>
   useImperativeHandle(ref, () => ({
     reload,
     setZoomFactor: setZoom,
+    executeScript: async (code: string) => {
+      const webview = webviewRef.current as any;
+      if (!webview) throw new Error('webview not ready');
+      return webview.executeJavaScript(code);
+    },
+    executeScripts: async (scripts: Array<{ id: string; code: string }>) => {
+      const webview = webviewRef.current as any;
+      if (!webview) throw new Error('webview not ready');
+      const results: Array<{ id: string; result?: any; error?: string }> = [];
+      for (const s of scripts) {
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          const result = await webview.executeJavaScript(s.code);
+          results.push({ id: s.id, result });
+          try {
+            // Persist each result keyed by partitionName + script id
+            await window.electronAPI.scripts.append(`${partitionName}:${s.id}`, { result, at: Date.now() });
+          } catch {}
+        } catch (e: any) {
+          const error = String(e?.message ?? e);
+          results.push({ id: s.id, error });
+          try {
+            await window.electronAPI.scripts.append(`${partitionName}:${s.id}`, { error, at: Date.now() });
+          } catch {}
+        }
+      }
+      return results;
+    },
   }));
 
   // Function to capture and save cookies and localStorage
@@ -112,32 +105,13 @@ export const BrowserIframe = forwardRef<BrowserIframeHandle, BrowserIframeProps>
       // Execute script to get cookies and localStorage from webview
       const result = await webview.executeJavaScript(getStorageScript);
       
-      if (result && result.origin) {
-        // Save cookies to main process
-        if (result.cookies && Object.keys(result.cookies).length > 0) {
-          const cookiesResult = await window.electronAPI.cookies.save(
-            result.origin,
-            result.url,
-            result.cookies
-          );
-          
-          if (cookiesResult.success) {
-            console.log(`Cookies captured for ${result.origin}:`, Object.keys(result.cookies).length, 'cookies');
-          }
-        }
-
-        // Save localStorage to main process
-        if (result.localStorage && Object.keys(result.localStorage).length > 0) {
-          const storageResult = await window.electronAPI.storage.save(
-            result.origin,
-            result.localStorage
-          );
-          
-          if (storageResult.success) {
-            console.log(`LocalStorage captured for ${result.origin}:`, Object.keys(result.localStorage).length, 'items');
-          }
-        }
-      }
+      // Persist the entire capture into the centralized script results store
+      try {
+        await window.electronAPI.scripts.append(`${partitionName}:storage-capture`, {
+          at: Date.now(),
+          ...result,
+        });
+      } catch {}
     } catch (error) {
       // Silently ignore errors (e.g., cross-origin restrictions, page not loaded, navigation in progress)
       // This is expected behavior when page hasn't loaded or is cross-origin
@@ -150,6 +124,12 @@ export const BrowserIframe = forwardRef<BrowserIframeHandle, BrowserIframeProps>
 
     domReadyRef.current = false;
     updateStatus('loading');
+
+    // Ensure the target partition is configured in the main process before traffic
+    try {
+      // @ts-expect-error: preload typing
+      window.electronAPI?.session?.configureChromeLike?.(partitionName, CHROME_UA);
+    } catch {}
 
     const handleDOMReady = () => {
       domReadyRef.current = true;
@@ -164,6 +144,18 @@ export const BrowserIframe = forwardRef<BrowserIframeHandle, BrowserIframeProps>
       
       // Capture every 2 seconds
       captureIntervalRef.current = setInterval(captureStorage, 2000);
+
+      // Listen for websocket events forwarded from webview preload
+      try {
+        (webview as any).addEventListener('ipc-message', (e: any) => {
+          console.log("BrowserIframe: Received websocket event:", e);
+          if (e.channel === 'ws-event' && e.args?.[0]) {
+            // lazy init buffer on first use to avoid TS edits above
+            (window as any).__wsBuffer = (window as any).__wsBuffer || [];
+            (window as any).__wsBuffer.push(e.args[0]);
+          }
+        });
+      } catch {}
     };
 
     const handleDidNavigate = (event: { url: string }) => {
@@ -245,7 +237,9 @@ export const BrowserIframe = forwardRef<BrowserIframeHandle, BrowserIframeProps>
       bottom={0}
     >
       <webview
+        key={partitionName}
         ref={webviewRef}
+        preload={window.electronAPI?.getWebviewPreloadPath?.()}
         src={url === 'about:blank' ? 'about:blank' : url}
         style={{
           width: '100%',
@@ -254,6 +248,7 @@ export const BrowserIframe = forwardRef<BrowserIframeHandle, BrowserIframeProps>
         }}
         allowpopups
         webpreferences="contextIsolation=yes, nodeIntegration=no"
+        {...({ partition: partitionName, useragent: CHROME_UA } as any)}
       />
       {(status === 'loading' || status === 'error') && (
         <Flex

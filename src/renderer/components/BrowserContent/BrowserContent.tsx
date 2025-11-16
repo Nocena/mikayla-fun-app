@@ -6,9 +6,11 @@ import { BrowserIframe } from './BrowserIframe.js';
 interface BrowserContentProps {
   url: string;
   onUrlChange: (url: string) => void;
+  platformName?: string;
+  userId?: string;
 }
 
-export const BrowserContent = ({ url, onUrlChange }: BrowserContentProps) => {
+export const BrowserContent = ({ url, onUrlChange, platformName, userId }: BrowserContentProps) => {
   const [currentUrl, setCurrentUrl] = useState(url);
 
   const handleNavigate = (newUrl: string) => {
@@ -20,7 +22,7 @@ export const BrowserContent = ({ url, onUrlChange }: BrowserContentProps) => {
   return (
     <Box flex={1} display="flex" flexDirection="column" overflow="hidden">
       <BrowserAddressBar url={currentUrl} onNavigate={handleNavigate} />
-      <BrowserIframe url={currentUrl} />
+      <BrowserIframe url={currentUrl} platformName={platformName} userId={userId} />
     </Box>
   );
 };

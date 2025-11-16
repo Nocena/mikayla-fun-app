@@ -13,14 +13,14 @@ const PLATFORM_META: Record<CreatorPlatformKey, CreatorPlatformMeta> = {
     key: 'onlyfans',
     name: 'OnlyFans',
     baseUrl: 'https://onlyfans.com',
-    loginUrl: 'https://onlyfans.com/login',
+    loginUrl: 'https://onlyfans.com',
     colorScheme: 'blue',
   },
   fansly: {
     key: 'fansly',
     name: 'Fansly',
     baseUrl: 'https://fansly.com',
-    loginUrl: 'https://fansly.com/login',
+    loginUrl: 'https://fansly.com',
     colorScheme: 'purple',
   },
   patreon: {
@@ -34,7 +34,7 @@ const PLATFORM_META: Record<CreatorPlatformKey, CreatorPlatformMeta> = {
     key: 'herohero',
     name: 'HeroHero',
     baseUrl: 'https://herohero.co',
-    loginUrl: 'https://herohero.co/login',
+    loginUrl: 'https://herohero.co',
     colorScheme: 'teal',
   },
 };

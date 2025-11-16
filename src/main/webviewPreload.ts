@@ -1,3 +1,4 @@
+/// <reference lib="dom" />
 // This preload runs inside each <webview> guest page.
 // It patches WebSocket to capture sent/received frames and forwards them to the embedder.
 
@@ -24,7 +25,7 @@ const { ipcRenderer } = require('electron') as typeof import('electron');
         return originalSend(data);
       };
 
-      ws.addEventListener('message', (event) => {
+      ws.addEventListener('message', (event: MessageEvent) => {
         try {
           ipcRenderer.sendToHost('ws-event', {
             direction: 'incoming',

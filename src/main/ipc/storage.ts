@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron';
-import { localStorageStore } from '../stores';
+import { localStorageStore } from '../stores.js';
 
 export function registerStorageIpcHandlers() {
   ipcMain.handle('storage:save', (_event, origin: string, data: Record<string, string>) => {

@@ -1,5 +1,11 @@
 export interface ElectronAPI {
   platform: string;
+  getWebviewPreloadPath: () => string;
+  scripts: {
+    append: (key: string, item: any) => Promise<{ success: boolean; length?: number; error?: string }>;
+    get: (key: string) => Promise<{ success: boolean; data: any[]; error?: string }>;
+    clear: (key: string) => Promise<{ success: boolean; error?: string }>;
+  };
   cookies: {
     save: (origin: string, url: string, cookies: Record<string, string>) => Promise<{ success: boolean; error?: string }>;
     get: (origin: string) => Promise<{ success: boolean; data: { url: string; cookies: Record<string, string> } | null; error?: string }>;

@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { supabase, SocialAccount } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigation } from '../contexts/NavigationContext';
 import { AddAccountModal } from '../components/SocialAccounts/AddAccountModal';
 import { BrowserIframe, BrowserIframeHandle, BrowserStatus } from '../components/BrowserContent/BrowserIframe';
 import { toast } from '../lib/toast';
@@ -50,6 +51,7 @@ export const ClientsView = () => {
   const [browserError, setBrowserError] = useState<string | null>(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { user } = useAuth();
+  const { selectedAccountId, setSelectedAccountId } = useNavigation();
   const collapseButtonBg = useColorModeValue('white', 'gray.900');
   const collapseButtonColor = useColorModeValue('gray.900', 'white');
   const browserRef = useRef<BrowserIframeHandle | null>(null);
@@ -60,6 +62,18 @@ export const ClientsView = () => {
   useEffect(() => {
     fetchAccounts();
   }, [user]);
+
+  // When accounts change or a selectedAccountId is provided via navigation, auto-select it
+  useEffect(() => {
+    if (selectedAccountId && accounts.length > 0) {
+      const match = accounts.find((a) => a.id === selectedAccountId) || null;
+      if (match) {
+        setSelectedAccount(match);
+        // Clear the intent after applying once
+        setSelectedAccountId(null);
+      }
+    }
+  }, [selectedAccountId, accounts]);
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -137,6 +151,9 @@ export const ClientsView = () => {
   }, [selectedAccount?.id]);
 
   const selectedPlatformMeta = selectedAccount ? getPlatformMeta(selectedAccount.platform) : undefined;
+  const selectedPartitionName = selectedAccount
+    ? `persist:${selectedAccount.platform}-${selectedAccount.id}`
+    : 'persist:default';
 
   const statusText = (() => {
     if (browserStatus === 'error') return 'Unable to load content';
@@ -432,6 +449,7 @@ export const ClientsView = () => {
                 url={getSelectedUrl()}
                 zoomFactor={zoomLevel}
                 platformName={selectedPlatformMeta?.name}
+                partitionName={selectedPartitionName}
                 onStatusChange={(status, payload) => {
                   setBrowserStatus(status);
                   setBrowserError(payload?.message || null);

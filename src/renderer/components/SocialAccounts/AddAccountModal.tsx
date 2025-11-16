@@ -14,6 +14,9 @@ import { toast } from '../../lib/toast';
 import { DollarSign, Heart, Star, Shield } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { getCreatorPlatforms } from '../../utils/platform';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNavigation } from '../../contexts/NavigationContext';
 
 const platformIconMap: Record<string, LucideIcon> = {
   onlyfans: DollarSign,
@@ -33,20 +36,65 @@ export const AddAccountModal = ({
   onClose,
   onAccountAdded,
 }: AddAccountModalProps) => {
+  const { user } = useAuth();
+  const { setActiveView, setSelectedAccountId } = useNavigation();
 
   const platforms = getCreatorPlatforms().map((platform) => ({
+    key: platform.key,
     name: platform.name,
     color: platform.colorScheme,
     icon: platformIconMap[platform.key],
   }));
 
-  const handleConnect = (platform: string) => {
-    toast({
-      title: 'OAuth Integration',
-      description: `In production, this would redirect to ${platform} OAuth flow`,
-      status: 'info',
-    });
+  const handleConnect = async (platformName: string, platformKey: string) => {
+    if (!user) {
+      toast({
+        title: 'Not signed in',
+        description: 'Please sign in to link an account.',
+        status: 'error',
+      });
+      return;
+    }
+
+    const placeholderPlatformUserId =
+      (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
+        ? (crypto as any).randomUUID()
+        : `${platformKey}-${Date.now()}`;
+
+    // Create a placeholder social account row for this user and platform
+    const { data, error } = await supabase
+      .from('social_accounts')
+      .insert({
+        user_id: user.id,
+        platform: platformKey,
+        platform_user_id: placeholderPlatformUserId,
+        platform_username: '',
+        is_active: false,
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      toast({
+        title: 'Failed to create account',
+        description: error.message,
+        status: 'error',
+      });
+      return;
+    }
+
+    onAccountAdded();
     onClose();
+
+    // Navigate to Clients, and select the created account to show login page
+    setSelectedAccountId(data.id);
+    setActiveView('clients');
+
+    toast({
+      title: 'Account created',
+      description: `Opening ${platformName} login...`,
+      status: 'success',
+    });
   };
 
   return (
@@ -59,12 +107,12 @@ export const AddAccountModal = ({
           <VStack spacing={3}>
             {platforms.map((platform) => (
               <Button
-                key={platform.name}
+                key={platform.key}
                 w="full"
                 size="lg"
                 leftIcon={<Icon as={platform.icon} />}
                 colorScheme={platform.color}
-                onClick={() => handleConnect(platform.name)}
+                onClick={() => handleConnect(platform.name, platform.key)}
                 justifyContent="flex-start"
               >
                 <Text ml={2}>Connect {platform.name}</Text>

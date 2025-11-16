@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron';
-import { cookieStore } from '../stores';
+import { cookieStore } from '../stores.js';
 
 export function registerCookieIpcHandlers() {
   ipcMain.handle('cookies:save', (_event, origin: string, url: string, cookies: Record<string, string>) => {
