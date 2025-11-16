@@ -3,6 +3,8 @@ import { SocialAccount } from '../../lib/supabase';
 import { BrowserIframe, BrowserIframeHandle } from '../BrowserContent/BrowserIframe';
 import { useAccountStatus } from '../../contexts/AccountStatusContext';
 import { getPlatformMeta } from '../../utils/platform';
+import { useAccountChatsPoller } from '../../hooks/useAccountChatsPoller';
+import { filterAllowedHeaders } from '../../services/onlyfansChatsService';
 
 interface AccountWebviewManagerProps {
   accounts: SocialAccount[];
@@ -11,6 +13,9 @@ interface AccountWebviewManagerProps {
 export const AccountWebviewManager = ({ accounts }: AccountWebviewManagerProps) => {
   const refs = useRef<Record<string, BrowserIframeHandle | null>>({});
   const { setStatus } = useAccountStatus();
+
+  // Poll chats and users for synced accounts
+  useAccountChatsPoller({ accounts, webviewRefs: refs });
 
   // Poll /me inside each account's webview to determine sync status
   useEffect(() => {
@@ -32,13 +37,7 @@ export const AccountWebviewManager = ({ accounts }: AccountWebviewManagerProps) 
           const hdrRes = await window.electronAPI.headers.get(partitionName);
           const rawHeaders = hdrRes.success && hdrRes.data ? hdrRes.data : {};
           // Filter out forbidden headers for browser fetch (cookie, host, origin, referer, connection, content-length, sec-*, proxy-*)
-          const allowedHeaders: Record<string, string> = {};
-          Object.entries(rawHeaders).forEach(([k, v]) => {
-            const key = String(k);
-            if (!/^(cookie|host|origin|referer|connection|content-length|sec-|proxy-)/i.test(key)) {
-              allowedHeaders[key] = String(v as any);
-            }
-          });
+          const allowedHeaders = filterAllowedHeaders(rawHeaders);
 
           let meRes = null;
           if (Object.keys(allowedHeaders).length > 0) {
