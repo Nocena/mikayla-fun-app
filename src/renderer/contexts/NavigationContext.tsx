@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 
-type ViewId = 'inbox' | 'accounts' | 'clients' | 'ai-config' | 'analytics' | 'settings';
+type ViewId = 'inbox' | 'chat' | 'accounts' | 'clients' | 'ai-config' | 'analytics' | 'settings';
 
 interface NavigationContextType {
   activeView: ViewId;

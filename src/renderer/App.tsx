@@ -17,6 +17,7 @@ import { SettingsView } from './views/SettingsView';
 import { Box, Container, Flex, Text, Image } from '@chakra-ui/react';
 import theme from './theme';
 import logoImage from './assets/logo.png';
+import {ChatView} from "./views/ChatView";
 
 function AuthScreen() {
   const [showLogin, setShowLogin] = useState(true);
@@ -66,6 +67,8 @@ function AppContent() {
     switch (activeView) {
       case 'inbox':
         return <InboxView />;
+      case 'chat':
+        return <ChatView />;
       case 'accounts':
         return <SocialAccountsView />;
       case 'clients':

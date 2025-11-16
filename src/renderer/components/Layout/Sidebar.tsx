@@ -21,6 +21,7 @@ import {
 } from '@chakra-ui/react';
 import {
   MessageSquare,
+  Inbox,
   BarChart3,
   Settings,
   Users,
@@ -56,7 +57,8 @@ export const Sidebar = ({
   const { colorMode, toggleColorMode } = useColorMode();
 
   const menuItems = [
-    { id: 'inbox', label: 'Inbox', icon: MessageSquare },
+    { id: 'inbox', label: 'Inbox', icon: Inbox },
+    { id: 'chat', label: 'Chat', icon: MessageSquare },
     { id: 'accounts', label: 'Accounts', icon: Users },
     { id: 'clients', label: 'Clients', icon: Globe },
     { id: 'ai-config', label: 'AI Assistant', icon: Bot },

@@ -15,7 +15,10 @@
     "start": "electron .",
     "clean": "rimraf dist"
   },
-  "keywords": ["electron", "typescript"],
+  "keywords": [
+    "electron",
+    "typescript"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
@@ -38,12 +41,13 @@
     "@chakra-ui/react": "^2.8.2",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
+    "@google/genai": "^1.29.1",
     "@supabase/supabase-js": "^2.57.4",
     "framer-motion": "^10.16.16",
     "lucide-react": "^0.344.0",
+    "node-fetch": "^3.3.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "node-fetch": "^3.3.2"
+    "react-router-dom": "^7.9.6"
   }
 }
-

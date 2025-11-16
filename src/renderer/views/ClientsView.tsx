@@ -46,7 +46,6 @@ export const ClientsView = () => {
   const [filteredAccounts, setFilteredAccounts] = useState<SocialAccount[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<SocialAccount | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
   const [isAccountsSidebarCollapsed, setIsAccountsSidebarCollapsed] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [browserStatus, setBrowserStatus] = useState<BrowserStatus>('loading');
@@ -341,9 +340,7 @@ export const ClientsView = () => {
                   </Flex>
                 </Box>
               )}
-              {loading ? (
-                <Text color="text.muted">Loading accounts...</Text>
-              ) : filteredAccounts.length === 0 ? (
+              {filteredAccounts.length === 0 ? (
                 <Text color="text.muted" fontSize="sm" textAlign="center" py={8}>
                   {searchQuery ? 'No accounts found' : 'No accounts'}
                 </Text>
@@ -439,11 +436,7 @@ export const ClientsView = () => {
                 </Box>
               </Tooltip>
             )}
-            {loading ? (
-              <Text fontSize="xs" color="text.muted" textAlign="center">
-                Loading...
-              </Text>
-            ) : filteredAccounts.length === 0 ? (
+            {filteredAccounts.length === 0 ? (
               <Text fontSize="xs" color="text.muted" textAlign="center">
                 No accounts
               </Text>
