@@ -48,10 +48,8 @@ export const useAccountChatsPoller = ({ accounts, webviewRefs }: UseAccountChats
             return;
           }
 
-          allowedHeaders = addUserIdToHeaders(allowedHeaders, acc.platform_user_id)
           // Step 1: Fetch chats
-          const chatsScript = getChatsFetchScript(allowedHeaders);
-          console.log("chatsScript", chatsScript)
+          const chatsScript = getChatsFetchScript(allowedHeaders, acc.platform_user_id);
           const chatsRes = await ref.executeScript(chatsScript);
 
           if (!chatsRes || !chatsRes.ok || !chatsRes.data) {
@@ -68,7 +66,7 @@ export const useAccountChatsPoller = ({ accounts, webviewRefs }: UseAccountChats
           }
 
           // Step 2: Fetch users list using IDs from chats
-          const usersScript = getUsersListFetchScript(allowedHeaders, userIds);
+          const usersScript = getUsersListFetchScript(allowedHeaders, acc.platform_user_id, userIds);
           const usersRes = await ref.executeScript(usersScript);
 
           if (!usersRes || !usersRes.ok || !usersRes.data) {

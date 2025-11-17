@@ -2,6 +2,7 @@
  * OnlyFans Chats Service
  * Handles fetching chats and users data from OnlyFans API
  */
+import {needSignTimeHeaders} from "../lib/requestHelpers";
 
 export interface OnlyFansChat {
   id: number;
@@ -23,15 +24,19 @@ export interface OnlyFansUsersResponse {
   [key: string]: any;
 }
 
+const baseUrl = 'https://onlyfans.com'
+
 /**
  * Generates JavaScript code to fetch chats from OnlyFans API
  */
-export const getChatsFetchScript = (headers: Record<string, string>): string => {
+export const getChatsFetchScript = (headers: Record<string, string>, userId: string): string => {
+  let subUrl = '/api2/v2/chats?limit=10&offset=0&skip_users=all&order=recent'
+  let updatedHeaders = needSignTimeHeaders(headers, subUrl, userId)
   return `
     (async () => {
       try {
-        const headers = ${JSON.stringify(headers)};
-        const res = await fetch('https://onlyfans.com/api2/v2/chats?limit=10&offset=0&skip_users=all&order=recent', {
+        const headers = ${JSON.stringify(updatedHeaders)};
+        const res = await fetch('${baseUrl}${subUrl}', {
           method: 'GET',
           credentials: 'include',
           headers
@@ -50,13 +55,16 @@ export const getChatsFetchScript = (headers: Record<string, string>): string => 
 /**
  * Generates JavaScript code to fetch users list from OnlyFans API
  */
-export const getUsersListFetchScript = (headers: Record<string, string>, userIds: number[]): string => {
+export const getUsersListFetchScript = (headers: Record<string, string>, userId: string, userIds: number[]): string => {
   const queryParams = userIds.map(id => `cl[]=${id}`).join('&');
+  const subUrl = `/api2/v2/users/list?${queryParams}`
+  let updatedHeaders = needSignTimeHeaders(headers, subUrl, userId)
+
   return `
     (async () => {
       try {
-        const headers = ${JSON.stringify(headers)};
-        const res = await fetch('https://onlyfans.com/api2/v2/users/list?${queryParams}', {
+        const headers = ${JSON.stringify(updatedHeaders)};
+        const res = await fetch('${baseUrl}${subUrl}', {
           method: 'GET',
           credentials: 'include',
           headers
