@@ -1,17 +1,18 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { SocialAccount } from '../../lib/supabase';
 import { BrowserIframe, BrowserIframeHandle } from '../BrowserContent/BrowserIframe';
 import { useAccountStatus } from '../../contexts/AccountStatusContext';
 import { getPlatformMeta } from '../../utils/platform';
 import { useAccountChatsPoller } from '../../hooks/useAccountChatsPoller';
 import { filterAllowedHeaders } from '../../services/onlyfansChatsService';
+import { useWebviews } from '../../contexts/WebviewContext';
 
 interface AccountWebviewManagerProps {
   accounts: SocialAccount[];
 }
 
 export const AccountWebviewManager = ({ accounts }: AccountWebviewManagerProps) => {
-  const refs = useRef<Record<string, BrowserIframeHandle | null>>({});
+  const { webviewRefs: refs } = useWebviews();
   const { setStatus } = useAccountStatus();
 
   // Poll chats and users for synced accounts

@@ -54,6 +54,49 @@ export const getChatsFetchScript = (headers: Record<string, string>, userId: str
 };
 
 /**
+ * Generates JavaScript code to fetch messages from OnlyFans API
+ */
+export const getMessagesFetchScript = (headers: Record<string, string>, userId: string, chatId: string | number, limit: number = 50): string => {
+  let subUrl = `/api2/v2/chats/${chatId}/messages?limit=${limit}&order=desc&skip_users=all`
+  let updatedHeaders = needSignTimeHeaders(headers, subUrl, userId)
+
+  return `
+    (async () => {
+      try {
+        const headers = ${JSON.stringify(updatedHeaders)};
+        const res = await fetch('${baseUrl}${subUrl}', {
+          method: 'GET',
+          credentials: 'include',
+          headers
+        });
+        const text = await res.text();
+        let data = null;
+        try { data = JSON.parse(text); } catch { data = { raw: text }; }
+        return { ok: res.ok, status: res.status, data };
+      } catch (e) {
+        return { ok: false, error: String(e) };
+      }
+    })();
+  `;
+};
+
+export interface OnlyFansMessage {
+  id: number;
+  text: string;
+  createdAt: string;
+  fromUser: {
+    id: number;
+  };
+  [key: string]: any;
+}
+
+export interface OnlyFansMessagesResponse {
+  list: OnlyFansMessage[];
+  hasMore: boolean;
+  [key: string]: any;
+}
+
+/**
  * Generates JavaScript code to fetch users list from OnlyFans API
  */
 export const getUsersListFetchScript = (headers: Record<string, string>, userId: string, userIds: number[]): string => {
@@ -112,4 +155,53 @@ export const addUserIdToHeaders = (headers: Record<string, string>, userId: stri
     ...headers,
     'user-id': userId,
   }
+};
+
+/**
+ * Generates JavaScript code to send a message to OnlyFans API
+ */
+export const getSendMessageScript = (
+  headers: Record<string, string>, 
+  userId: string, 
+  chatId: string | number, 
+  text: string
+): string => {
+  const subUrl = `/api2/v2/chats/${chatId}/messages`;
+  const updatedHeaders = needSignTimeHeaders(headers, subUrl, userId);
+  
+  const payload = {
+    text: `<p>${text}</p>`,
+    lockedText: false,
+    mediaFiles: [],
+    price: 0,
+    previews: [],
+    rfTag: [],
+    rfGuest: [],
+    rfPartner: [],
+    isForward: false,
+  };
+
+  return `
+    (async () => {
+      try {
+        const headers = ${JSON.stringify(updatedHeaders)};
+        const payload = ${JSON.stringify(payload)};
+        const res = await fetch('${baseUrl}${subUrl}', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            ...headers,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload)
+        });
+        const text = await res.text();
+        let data = null;
+        try { data = JSON.parse(text); } catch { data = { raw: text }; }
+        return { ok: res.ok, status: res.status, data };
+      } catch (e) {
+        return { ok: false, error: String(e) };
+      }
+    })();
+  `;
 };

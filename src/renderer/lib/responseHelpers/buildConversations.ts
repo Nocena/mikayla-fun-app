@@ -9,6 +9,7 @@ export function buildConversations(
 
     return chats.list.map((entry) => {
         const userId = entry.withUser.id.toString();
+        const chatId = entry.id?.toString() || userId; // Use chat.id if available, fallback to userId
         const userInfo = users[userId];
 
         if (!userInfo || !entry.lastMessage) {
@@ -39,9 +40,9 @@ export function buildConversations(
             timestamp: msg.createdAt
         };
 
-        // Final conversation
+        // Final conversation - use chatId as the conversation id for fetching messages
         const conversation: Conversation = {
-            id: userId,
+            id: chatId,
             fan,
             messages: [message],
             unreadCount: entry.unreadMessagesCount,

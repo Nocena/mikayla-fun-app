@@ -1,13 +1,16 @@
 import React from 'react';
 import type { Message as MessageType } from '../../types/chat';
 import {SparklesIcon} from "./icons/SparklesIcon";
+import {Avatar} from "./Avatar";
+import {formatRelativeTime} from "../../utils/dateUtils";
 
 interface MessageProps {
   message: MessageType;
-  fanAvatar: string;
+  fanAvatar?: string | null;
+  fanName?: string;
 }
 
-export const Message: React.FC<MessageProps> = ({ message, fanAvatar }) => {
+export const Message: React.FC<MessageProps> = ({ message, fanAvatar, fanName = 'Fan' }) => {
   const isFan = message.sender === 'fan';
   const isAI = message.sender === 'ai';
 
@@ -23,16 +26,19 @@ export const Message: React.FC<MessageProps> = ({ message, fanAvatar }) => {
   return (
     <div className={wrapperClasses}>
       {isFan && (
-        <img src={fanAvatar} alt="Fan" className="w-8 h-8 rounded-full flex-shrink-0" />
+        <Avatar avatarUrl={fanAvatar} name={fanName} size="sm" className="flex-shrink-0" />
       )}
       <div className="flex flex-col" style={{ alignItems: isFan ? 'flex-start' : 'flex-end' }}>
         <div className={bubbleClasses}>
             {isAI && (
                 <SparklesIcon className="absolute -top-2 -left-2 w-5 h-5 text-primary bg-panel rounded-full p-1" />
             )}
-            <p className="text-sm break-words">{message.content}</p>
+            <div 
+              className="text-sm break-words"
+              dangerouslySetInnerHTML={{ __html: message.content || '' }}
+            />
         </div>
-        <span className="text-xs text-text-secondary mt-1.5 px-1">{message.timestamp}</span>
+        <span className="text-xs text-text-secondary mt-1.5 px-1">{formatRelativeTime(message.timestamp)}</span>
       </div>
     </div>
   );

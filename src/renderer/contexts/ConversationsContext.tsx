@@ -45,8 +45,43 @@ export const ConversationsProvider = ({ children }: { children: ReactNode }) => 
       const existingMap = new Map(prev.map(c => [c.id, c]));
       
       // Merge new conversations, updating existing ones or adding new ones
-      newConversations.forEach(conv => {
-        existingMap.set(conv.id, conv);
+      newConversations.forEach(newConv => {
+        const existingConv = existingMap.get(newConv.id);
+        
+        if (existingConv && existingConv.messages.length > 0) {
+          // Check if existing conversation has messages
+          const existingLastMsg = existingConv.messages[existingConv.messages.length - 1];
+          const newLastMsg = newConv.messages[0]; // New conversation's last message preview is the first in array
+          
+          // Compare last message by content and timestamp
+          const lastMsgMatches = existingLastMsg && newLastMsg &&
+            existingLastMsg.content === newLastMsg.content &&
+            existingLastMsg.timestamp === newLastMsg.timestamp;
+          
+          if (lastMsgMatches) {
+            // Last message is the same, don't update messages but update metadata
+            existingMap.set(newConv.id, {
+              ...newConv,
+              messages: existingConv.messages, // Preserve existing messages
+            });
+          } else if (newLastMsg && newLastMsg.content && newLastMsg.content.trim() !== '') {
+            // Last message is different and not blank, add it to messages
+            const updatedMessages = [...existingConv.messages, newLastMsg];
+            existingMap.set(newConv.id, {
+              ...newConv,
+              messages: updatedMessages,
+            });
+          } else {
+            // New last message is blank, set last message as messages (replace)
+            existingMap.set(newConv.id, {
+              ...newConv,
+              messages: newConv.messages,
+            });
+          }
+        } else {
+          // New conversation or no existing messages, just set it
+          existingMap.set(newConv.id, newConv);
+        }
       });
       
       // Convert back to array and sort by last message timestamp (most recent first)

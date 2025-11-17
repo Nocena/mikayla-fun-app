@@ -3,10 +3,20 @@ import {Conversation, Message} from '../types/chat';
 import {ConversationList} from "../components/Chat/ConversationList";
 import {ChatWindow} from "../components/Chat/ChatWindow";
 import {useConversations} from '../contexts/ConversationsContext';
+import {useSocialAccounts} from '../contexts/SocialAccountsContext';
+import {useWebviews} from '../contexts/WebviewContext';
+import {useFetchMessages} from '../hooks/useFetchMessages';
+import {useSendMessage} from '../hooks/useSendMessage';
 
 export const ChatView = () => {
   const { conversations, updateConversation } = useConversations();
+  const { accounts } = useSocialAccounts();
+  const { webviewRefs } = useWebviews();
+  const { fetchMessages } = useFetchMessages({ accounts, webviewRefs });
+  const { sendMessage } = useSendMessage({ accounts, webviewRefs });
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   // Read conversation ID from URL params on mount and when URL changes
   useEffect(() => {
@@ -41,6 +51,45 @@ export const ChatView = () => {
     }
   }, [conversations]);
 
+  // Fetch messages when conversation is selected
+  useEffect(() => {
+    if (!selectedConversation) return;
+
+    // Only fetch if messages array is empty or has only the last message
+    const shouldFetch = selectedConversation.messages.length <= 1;
+
+    if (shouldFetch && !loadingMessages) {
+      setLoadingMessages(true);
+      
+      // Find the account that owns this conversation
+      // For now, we'll try the first OnlyFans account
+      const onlyFansAccount = accounts.find(acc => acc.platform.toLowerCase() === 'onlyfans');
+      
+      if (onlyFansAccount && onlyFansAccount.platform_user_id) {
+        fetchMessages(
+          selectedConversation.id, // chatId
+          onlyFansAccount.platform_user_id,
+          onlyFansAccount.id
+        ).then((messages) => {
+          if (messages.length > 0) {
+            const updatedConversation = {
+              ...selectedConversation,
+              messages: messages,
+            };
+            setSelectedConversation(updatedConversation);
+            updateConversation(updatedConversation.id, updatedConversation);
+          }
+          setLoadingMessages(false);
+        }).catch((error) => {
+          console.error('Error fetching messages:', error);
+          setLoadingMessages(false);
+        });
+      } else {
+        setLoadingMessages(false);
+      }
+    }
+  }, [selectedConversation?.id, fetchMessages, accounts, updateConversation]);
+
   const handleConversationClick = (conversationId: string) => {
     const found = conversations.find(c => c.id === conversationId);
     if (found) {
@@ -52,29 +101,73 @@ export const ChatView = () => {
     }
   };
 
-  const handleSendMessage = (content: string, sender: 'model' | 'ai') => {
-    if (!selectedConversation) return;
+  const handleSendMessage = async (content: string, sender: 'model' | 'ai') => {
+    if (!selectedConversation || sendingMessage) return;
 
-    const newMessage: Message = {
-      id: `msg-${Date.now()}`,
-      sender,
-      content,
-      timestamp: 'Just now',
+    // Find the account that owns this conversation
+    const onlyFansAccount = accounts.find(acc => acc.platform.toLowerCase() === 'onlyfans');
+    
+    if (!onlyFansAccount || !onlyFansAccount.platform_user_id) {
+      console.error('No OnlyFans account found to send message');
+      return;
+    }
+
+    setSendingMessage(true);
+
+    // Optimistically add the message to the UI
+    const tempMessage: Message = {
+      id: `temp-${Date.now()}`,
+      sender: 'model',
+      content: `<p>${content}</p>`,
+      timestamp: new Date().toISOString(),
     };
 
-    // TODO: This is where you would send the message to your backend via API/WebSocket.
-    // The backend would then proxy it to OnlyFans.
-    console.log("Sending message:", newMessage);
-
-    // For the mock frontend, we optimistically update the state.
-    const updatedConversation = {
+    const optimisticConversation = {
       ...selectedConversation,
-      messages: [...selectedConversation.messages, newMessage],
+      messages: [...selectedConversation.messages, tempMessage],
     };
-    setSelectedConversation(updatedConversation);
+    setSelectedConversation(optimisticConversation);
+    updateConversation(optimisticConversation.id, optimisticConversation);
 
-    // Also update the main conversations list
-    updateConversation(updatedConversation.id, updatedConversation);
+    try {
+      // Send message via API
+      const success = await sendMessage(
+        selectedConversation.id, // chatId
+        content,
+        onlyFansAccount.platform_user_id,
+        onlyFansAccount.id
+      );
+
+      if (success) {
+        // Message sent successfully, refetch messages to get the actual message from API
+        const messages = await fetchMessages(
+          selectedConversation.id,
+          onlyFansAccount.platform_user_id,
+          onlyFansAccount.id
+        );
+
+        if (messages.length > 0) {
+          const updatedConversation = {
+            ...selectedConversation,
+            messages: messages,
+          };
+          setSelectedConversation(updatedConversation);
+          updateConversation(updatedConversation.id, updatedConversation);
+        }
+      } else {
+        // Failed to send, remove optimistic message
+        setSelectedConversation(selectedConversation);
+        updateConversation(selectedConversation.id, selectedConversation);
+        console.error('Failed to send message');
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      // Remove optimistic message on error
+      setSelectedConversation(selectedConversation);
+      updateConversation(selectedConversation.id, selectedConversation);
+    } finally {
+      setSendingMessage(false);
+    }
   };
 
 

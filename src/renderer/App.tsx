@@ -5,6 +5,7 @@ import { NavigationProvider, useNavigation } from './contexts/NavigationContext'
 import { AccountStatusProvider } from './contexts/AccountStatusContext';
 import { SocialAccountsProvider } from './contexts/SocialAccountsContext';
 import { ConversationsProvider } from './contexts/ConversationsContext';
+import { WebviewProvider } from './contexts/WebviewContext';
 import { GlobalAccountWebviews } from './components/Clients/GlobalAccountWebviews';
 import { MainLayout } from './components/Layout/MainLayout';
 import { LoginForm } from './components/Auth/LoginForm';
@@ -81,7 +82,7 @@ function AppContent() {
       case 'settings':
         return <SettingsView />;
       default:
-        return <InboxView />;
+        return <SocialAccountsView />;
     }
   };
 
@@ -104,9 +105,11 @@ function App() {
         <NavigationProvider>
           <AccountStatusProvider>
             <SocialAccountsProvider>
-              <ConversationsProvider>
-                <AppContent />
-              </ConversationsProvider>
+              <WebviewProvider>
+                <ConversationsProvider>
+                  <AppContent />
+                </ConversationsProvider>
+              </WebviewProvider>
             </SocialAccountsProvider>
           </AccountStatusProvider>
         </NavigationProvider>

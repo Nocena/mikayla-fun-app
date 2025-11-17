@@ -57,10 +57,10 @@ export const Sidebar = ({
   const { colorMode, toggleColorMode } = useColorMode();
 
   const menuItems = [
-    { id: 'inbox', label: 'Inbox', icon: Inbox },
-    { id: 'chat', label: 'Chat', icon: MessageSquare },
     { id: 'accounts', label: 'Accounts', icon: Users },
+    { id: 'chat', label: 'Chat', icon: MessageSquare },
     { id: 'clients', label: 'Clients', icon: Globe },
+    { id: 'inbox', label: 'Inbox', icon: Inbox },
     { id: 'ai-config', label: 'AI Assistant', icon: Bot },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'settings', label: 'Settings', icon: Settings },

@@ -22,7 +22,7 @@ export const useNavigation = () => {
 };
 
 export const NavigationProvider = ({ children }: { children: ReactNode }) => {
-  const [activeView, setActiveView] = useState<ViewId>('inbox');
+  const [activeView, setActiveView] = useState<ViewId>('accounts');
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [pendingAccount, setPendingAccount] = useState<{ id: string; platform: string; platformName?: string; platform_username?: string } | null>(null);
 
