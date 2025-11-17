@@ -148,35 +148,43 @@ export default class HashHelper {
     }
 
     private hash(): void {
-        // (Full algorithm unchanged — omitted for brevity)
-        // If you want, I can fully type the entire unrolled SHA-1 loop.
+        var t = this.h0, e = this.h1, r = this.h2, n = this.h3, i = this.h4, f, a, s, h = this.blocks;
+        for (a = 16; a < 80; ++a)
+            s = h[a - 3] ^ h[a - 8] ^ h[a - 14] ^ h[a - 16],
+                h[a] = s << 1 | s >>> 31;
+        for (a = 0; a < 20; a += 5)
+            t = (s = (e = (s = (r = (s = (n = (s = (i = (s = t << 5 | t >>> 27) + (f = e & r | ~e & n) + i + 1518500249 + h[a] | 0) << 5 | i >>> 27) + (f = t & (e = e << 30 | e >>> 2) | ~t & r) + n + 1518500249 + h[a + 1] | 0) << 5 | n >>> 27) + (f = i & (t = t << 30 | t >>> 2) | ~i & e) + r + 1518500249 + h[a + 2] | 0) << 5 | r >>> 27) + (f = n & (i = i << 30 | i >>> 2) | ~n & t) + e + 1518500249 + h[a + 3] | 0) << 5 | e >>> 27) + (f = r & (n = n << 30 | n >>> 2) | ~r & i) + t + 1518500249 + h[a + 4] | 0,
+                r = r << 30 | r >>> 2;
+        for (; a < 40; a += 5)
+            t = (s = (e = (s = (r = (s = (n = (s = (i = (s = t << 5 | t >>> 27) + (f = e ^ r ^ n) + i + 1859775393 + h[a] | 0) << 5 | i >>> 27) + (f = t ^ (e = e << 30 | e >>> 2) ^ r) + n + 1859775393 + h[a + 1] | 0) << 5 | n >>> 27) + (f = i ^ (t = t << 30 | t >>> 2) ^ e) + r + 1859775393 + h[a + 2] | 0) << 5 | r >>> 27) + (f = n ^ (i = i << 30 | i >>> 2) ^ t) + e + 1859775393 + h[a + 3] | 0) << 5 | e >>> 27) + (f = r ^ (n = n << 30 | n >>> 2) ^ i) + t + 1859775393 + h[a + 4] | 0,
+                r = r << 30 | r >>> 2;
+        for (; a < 60; a += 5)
+            t = (s = (e = (s = (r = (s = (n = (s = (i = (s = t << 5 | t >>> 27) + (f = e & r | e & n | r & n) + i - 1894007588 + h[a] | 0) << 5 | i >>> 27) + (f = t & (e = e << 30 | e >>> 2) | t & r | e & r) + n - 1894007588 + h[a + 1] | 0) << 5 | n >>> 27) + (f = i & (t = t << 30 | t >>> 2) | i & e | t & e) + r - 1894007588 + h[a + 2] | 0) << 5 | r >>> 27) + (f = n & (i = i << 30 | i >>> 2) | n & t | i & t) + e - 1894007588 + h[a + 3] | 0) << 5 | e >>> 27) + (f = r & (n = n << 30 | n >>> 2) | r & i | n & i) + t - 1894007588 + h[a + 4] | 0,
+                r = r << 30 | r >>> 2;
+        for (; a < 80; a += 5)
+            t = (s = (e = (s = (r = (s = (n = (s = (i = (s = t << 5 | t >>> 27) + (f = e ^ r ^ n) + i - 899497514 + h[a] | 0) << 5 | i >>> 27) + (f = t ^ (e = e << 30 | e >>> 2) ^ r) + n - 899497514 + h[a + 1] | 0) << 5 | n >>> 27) + (f = i ^ (t = t << 30 | t >>> 2) ^ e) + r - 899497514 + h[a + 2] | 0) << 5 | r >>> 27) + (f = n ^ (i = i << 30 | i >>> 2) ^ t) + e - 899497514 + h[a + 3] | 0) << 5 | e >>> 27) + (f = r ^ (n = n << 30 | n >>> 2) ^ i) + t - 899497514 + h[a + 4] | 0,
+                r = r << 30 | r >>> 2;
+        this.h0 = this.h0 + t | 0,
+            this.h1 = this.h1 + e | 0,
+            this.h2 = this.h2 + r | 0,
+            this.h3 = this.h3 + n | 0,
+            this.h4 = this.h4 + i | 0
     }
 
     finalize(): void {
         if (!this.finalized) {
-            this.finalized = true;
-
-            const t = this.blocks;
-            const e = this.lastByteIndex;
-
-            // Missing global "_" mapping table
-            const _ = [0x80, 0, 0, 0];
-
-            t[16] = this.block;
-            t[e >>> 2] |= _[e & 3];
-
-            this.block = t[16];
-
-            if (e >= 56) {
-                if (!this.hashed) this.hash();
-                t[0] = this.block;
-                for (let i = 1; i < 16; i++) t[i] = 0;
-            }
-
-            t[14] = (this.hBytes << 3) | (this.bytes >>> 29);
-            t[15] = this.bytes << 3;
-
-            this.hash();
+            this.finalized = !0;
+            var t = this.blocks
+                , e = this.lastByteIndex;
+            t[16] = this.block,
+                t[e >>> 2] |= [-2147483648, 8388608, 32768, 128][3 & e],
+                this.block = t[16],
+            e >= 56 && (this.hashed || this.hash(),
+                t[0] = this.block,
+                t[16] = t[1] = t[2] = t[3] = t[4] = t[5] = t[6] = t[7] = t[8] = t[9] = t[10] = t[11] = t[12] = t[13] = t[14] = t[15] = 0),
+                t[14] = this.hBytes << 3 | this.bytes >>> 29,
+                t[15] = this.bytes << 3,
+                this.hash()
         }
     }
 

@@ -2,10 +2,10 @@ import {useState, useEffect} from 'react';
 import {Conversation, Message} from '../types/chat';
 import {ConversationList} from "../components/Chat/ConversationList";
 import {ChatWindow} from "../components/Chat/ChatWindow";
-import {mockConversations} from "./mockData";
+import {useConversations} from '../contexts/ConversationsContext';
 
 export const ChatView = () => {
-  const [conversations, setConversations] = useState<Conversation[]>(mockConversations);
+  const { conversations, updateConversation } = useConversations();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
 
   // Read conversation ID from URL params on mount and when URL changes
@@ -74,7 +74,7 @@ export const ChatView = () => {
     setSelectedConversation(updatedConversation);
 
     // Also update the main conversations list
-    setConversations(prev => prev.map(c => c.id === updatedConversation.id ? updatedConversation : c));
+    updateConversation(updatedConversation.id, updatedConversation);
   };
 
 

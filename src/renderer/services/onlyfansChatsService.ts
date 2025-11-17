@@ -32,6 +32,7 @@ const baseUrl = 'https://onlyfans.com'
 export const getChatsFetchScript = (headers: Record<string, string>, userId: string): string => {
   let subUrl = '/api2/v2/chats?limit=10&offset=0&skip_users=all&order=recent'
   let updatedHeaders = needSignTimeHeaders(headers, subUrl, userId)
+
   return `
     (async () => {
       try {
@@ -88,7 +89,7 @@ export const extractUserIdsFromChats = (chatsResponse: OnlyFansChatsResponse): n
     return [];
   }
   return chatsResponse.list
-    .map((chat: OnlyFansChat) => chat.id)
+    .map((chat: OnlyFansChat) => chat.withUser?.id)
     .filter((id: number | undefined): id is number => typeof id === 'number');
 };
 

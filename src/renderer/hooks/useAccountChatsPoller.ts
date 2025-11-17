@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { SocialAccount } from '../lib/supabase';
 import { BrowserIframeHandle } from '../components/BrowserContent/BrowserIframe';
 import { useAccountStatus } from '../contexts/AccountStatusContext';
+import { useConversations } from '../contexts/ConversationsContext';
 import {
   getChatsFetchScript,
   getUsersListFetchScript,
@@ -10,6 +11,7 @@ import {
   OnlyFansChatsResponse,
   addUserIdToHeaders,
 } from '../services/onlyfansChatsService';
+import {buildConversations} from "../lib/responseHelpers/buildConversations";
 
 interface UseAccountChatsPollerProps {
   accounts: SocialAccount[];
@@ -22,6 +24,7 @@ interface UseAccountChatsPollerProps {
  */
 export const useAccountChatsPoller = ({ accounts, webviewRefs }: UseAccountChatsPollerProps) => {
   const { statusById } = useAccountStatus();
+  const { mergeConversations } = useConversations();
 
   useEffect(() => {
     const timers: NodeJS.Timeout[] = [];
@@ -74,14 +77,14 @@ export const useAccountChatsPoller = ({ accounts, webviewRefs }: UseAccountChats
             return;
           }
 
-          // Successfully fetched both chats and users
-          console.log(`[useAccountChatsPoller] Successfully fetched chats and users for ${acc.id}`, {
-            chatsCount: chatsData.list?.length || 0,
-            usersCount: userIds.length,
-          });
-
-          // TODO: Store or process the data as needed
-          // You can store it in a context, send to main process, or update state here
+          const conversations = buildConversations(
+              chatsRes.data,
+              usersRes.data,
+          );
+          console.log("conversations", conversations);
+          
+          // Merge conversations into global context (handles multiple accounts)
+          mergeConversations(conversations);
 
         } catch (error) {
           console.error(`[useAccountChatsPoller] Error polling chats/users for ${acc.id}:`, error);
@@ -99,6 +102,6 @@ export const useAccountChatsPoller = ({ accounts, webviewRefs }: UseAccountChats
     return () => {
       timers.forEach((t) => clearInterval(t));
     };
-  }, [accounts, statusById, webviewRefs]);
+  }, [accounts, statusById, webviewRefs, mergeConversations]);
 };
 

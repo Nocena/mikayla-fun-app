@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NavigationProvider, useNavigation } from './contexts/NavigationContext';
 import { AccountStatusProvider } from './contexts/AccountStatusContext';
 import { SocialAccountsProvider } from './contexts/SocialAccountsContext';
+import { ConversationsProvider } from './contexts/ConversationsContext';
 import { GlobalAccountWebviews } from './components/Clients/GlobalAccountWebviews';
 import { MainLayout } from './components/Layout/MainLayout';
 import { LoginForm } from './components/Auth/LoginForm';
@@ -103,7 +104,9 @@ function App() {
         <NavigationProvider>
           <AccountStatusProvider>
             <SocialAccountsProvider>
-              <AppContent />
+              <ConversationsProvider>
+                <AppContent />
+              </ConversationsProvider>
             </SocialAccountsProvider>
           </AccountStatusProvider>
         </NavigationProvider>

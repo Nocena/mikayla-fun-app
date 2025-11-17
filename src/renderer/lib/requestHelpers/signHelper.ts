@@ -1,49 +1,60 @@
 import HashHelper from "./HashHelper";
 
-const addFunc = (W: any, n: any) => {return W+n}
-const modFunc = (W: any, n: any) => {return W % n}
-const subFunc = (W: any, n: any) => {return W - n}
-
+const add = (W: any, n: any) => {return W+n}
+const mod = (W: any, n: any) => {return W % n}
+const sub = (W: any, n: any) => {return W - n}
+/*Math.abs(
+    addFunc(
+        addFunc(addFunc(addFunc(addFunc(addFunc(addFunc(addFunc(
+                        addFunc(addFunc(addFunc(addFunc(addFunc(addFunc(
+                                    addFunc(addFunc(addFunc(addFunc(addFunc(
+                                                addFunc(addFunc(addFunc(addFunc(addFunc(addFunc(
+                                                                    subFunc(W[modFunc(51336, W.length)].charCodeAt(0), 97) +
+                                                                    subFunc(W[modFunc(50796, W.length)].charCodeAt(0), 65),
+                                                                    W[modFunc(50481, W.length)].charCodeAt(0) + 131
+                                                                ), subFunc(W[modFunc(51247, W.length)].charCodeAt(0), 84)),
+                                                                addFunc(W[modFunc(52843, W.length)].charCodeAt(0), 81)),
+                                                            W[modFunc(50561, W.length)].charCodeAt(0) + 81),
+                                                        subFunc(W[modFunc(52962, W.length)].charCodeAt(0), 121)),
+                                                    addFunc(W[modFunc(50947, W.length)].charCodeAt(0), 101)),
+                                                addFunc(W[modFunc(51388, W.length)].charCodeAt(0), 80)) +
+                                            subFunc(W[51443 % W.length].charCodeAt(0), 74),
+                                            addFunc(W[modFunc(51728, W.length)].charCodeAt(0), 124)),
+                                        W[modFunc(51023, W.length)].charCodeAt(0) + 91), subFunc(W[modFunc(51620, W.length)].charCodeAt(0), 77)
+                                    ) + subFunc(W[51178 % W.length].charCodeAt(0), 89), W[modFunc(52685, W.length)].charCodeAt(0) + 79),
+                                    addFunc(W[52181 % W.length].charCodeAt(0), 75)), subFunc(W[modFunc(51908, W.length)].charCodeAt(0), 109)),
+                                subFunc(W[modFunc(52619, W.length)].charCodeAt(0), 116)), addFunc(W[modFunc(53078, W.length)].charCodeAt(0), 138)),
+                            subFunc(W[modFunc(52009, W.length)].charCodeAt(0), 110)) + addFunc(W[modFunc(50665, W.length)].charCodeAt(0), 59),
+                            addFunc(W[modFunc(50743, W.length)].charCodeAt(0), 101)), subFunc(W[modFunc(51803, W.length)].charCodeAt(0), 102)),
+                    addFunc(W[modFunc(51547, W.length)].charCodeAt(0), 131)), subFunc(W[modFunc(52398, W.length)].charCodeAt(0), 117)),
+                addFunc(W[52773 % W.length].charCodeAt(0), 93)), addFunc(W[modFunc(52514, W.length)].charCodeAt(0), 118)),
+            addFunc(W[modFunc(50615, W.length)].charCodeAt(0), 77)), subFunc(W[50849 % W.length].charCodeAt(0), 54)
+        ) +
+        addFunc(W[52295 % W.length].charCodeAt(0), 121) + addFunc(W[modFunc(51099, W.length)].charCodeAt(0), 103),
+        addFunc(W[modFunc(52127, W.length)].charCodeAt(0), 149)
+    )
+).toString(16)*/
 export const getSignCode = (W: string) => {
-    const ttResult = Math.abs(
-        addFunc(
-            addFunc(addFunc(addFunc(addFunc(addFunc(addFunc(addFunc(
-                            addFunc(addFunc(addFunc(addFunc(addFunc(addFunc(
-                                        addFunc(addFunc(addFunc(addFunc(addFunc(
-                                                    addFunc(addFunc(addFunc(addFunc(addFunc(addFunc(
-                                                                        subFunc(W[modFunc(51336, W.length)].charCodeAt(0), 97) +
-                                                                        subFunc(W[modFunc(50796, W.length)].charCodeAt(0), 65),
-                                                                        W[modFunc(50481, W.length)].charCodeAt(0) + 131
-                                                                    ), subFunc(W[modFunc(51247, W.length)].charCodeAt(0), 84)),
-                                                                    addFunc(W[modFunc(52843, W.length)].charCodeAt(0), 81)),
-                                                                W[modFunc(50561, W.length)].charCodeAt(0) + 81),
-                                                            subFunc(W[modFunc(52962, W.length)].charCodeAt(0), 121)),
-                                                        addFunc(W[modFunc(50947, W.length)].charCodeAt(0), 101)),
-                                                    addFunc(W[modFunc(51388, W.length)].charCodeAt(0), 80)) +
-                                                subFunc(W[51443 % W.length].charCodeAt(0), 74),
-                                                addFunc(W[modFunc(51728, W.length)].charCodeAt(0), 124)),
-                                            W[modFunc(51023, W.length)].charCodeAt(0) + 91), subFunc(W[modFunc(51620, W.length)].charCodeAt(0), 77)
-                                        ) + subFunc(W[51178 % W.length].charCodeAt(0), 89), W[modFunc(52685, W.length)].charCodeAt(0) + 79),
-                                        addFunc(W[52181 % W.length].charCodeAt(0), 75)), subFunc(W[modFunc(51908, W.length)].charCodeAt(0), 109)),
-                                    subFunc(W[modFunc(52619, W.length)].charCodeAt(0), 116)), addFunc(W[modFunc(53078, W.length)].charCodeAt(0), 138)),
-                                subFunc(W[modFunc(52009, W.length)].charCodeAt(0), 110)) + addFunc(W[modFunc(50665, W.length)].charCodeAt(0), 59),
-                                addFunc(W[modFunc(50743, W.length)].charCodeAt(0), 101)), subFunc(W[modFunc(51803, W.length)].charCodeAt(0), 102)),
-                        addFunc(W[modFunc(51547, W.length)].charCodeAt(0), 131)), subFunc(W[modFunc(52398, W.length)].charCodeAt(0), 117)),
-                    addFunc(W[52773 % W.length].charCodeAt(0), 93)), addFunc(W[modFunc(52514, W.length)].charCodeAt(0), 118)),
-                addFunc(W[modFunc(50615, W.length)].charCodeAt(0), 77)), subFunc(W[50849 % W.length].charCodeAt(0), 54)
-            ) +
-            addFunc(W[52295 % W.length].charCodeAt(0), 121) + addFunc(W[modFunc(51099, W.length)].charCodeAt(0), 103),
-            addFunc(W[modFunc(52127, W.length)].charCodeAt(0), 149)
-        )
-    ).toString(16)
+    const ttResult = Math.abs(add(add(add(add(add(add(add(add(add(add(add(add(add(add(add(add(add(add(add(add(add(add(add(add(add(add(add(
+        W[mod(52782, W.length)].charCodeAt(0) - 115, add(W[mod(51489, W.length)].charCodeAt(0), 119)), sub(W[mod(53250, W.length)].charCodeAt(0),
+        81)), add(W[mod(51704, W.length)].charCodeAt(0), 92)), add(W[mod(51948, W.length)].charCodeAt(0), 82)), sub(W[mod(51066, W.length)].charCodeAt(0),
+        81)), W[51825 % W.length].charCodeAt(0) - 138), W[mod(52681, W.length)].charCodeAt(0) + 125), sub(W[mod(52029, W.length)].charCodeAt(0),
+        110)), add(W[52218 % W.length].charCodeAt(0), 110)), W[mod(50732, W.length)].charCodeAt(0) + 130) + sub(W[51141 % W.length].charCodeAt(0), 80),
+        add(W[mod(51229, W.length)].charCodeAt(0), 117)), W[mod(50866, W.length)].charCodeAt(0) + 66), W[mod(52941, W.length)].charCodeAt(0) - 118),
+        W[mod(51371, W.length)].charCodeAt(0) + 97) + sub(W[mod(51568, W.length)].charCodeAt(0), 95) + sub(W[mod(53054, W.length)].charCodeAt(0), 143),
+        W[mod(50614, W.length)].charCodeAt(0) + 120), sub(W[mod(50923, W.length)].charCodeAt(0), 68)), add(W[mod(50818, W.length)].charCodeAt(0), 88)) +
+        sub(W[53171 % W.length].charCodeAt(0), 136), add(W[mod(51011, W.length)].charCodeAt(0), 91)), sub(W[mod(52134, W.length)].charCodeAt(0), 111)),
+        add(W[mod(52450, W.length)].charCodeAt(0), 118)), sub(W[mod(51878, W.length)].charCodeAt(0), 59)), sub(W[52565 % W.length].charCodeAt(0), 136)),
+        sub(W[mod(53349, W.length)].charCodeAt(0), 104)), add(W[52836 % W.length].charCodeAt(0), 58)), W[52334 % W.length].charCodeAt(0) + 130),
+        add(W[mod(51636, W.length)].charCodeAt(0), 88)), add(W[mod(51285, W.length)].charCodeAt(0), 77))).toString(16)
 
-    return ['50367', W, ttResult, '691739e1'].join(':')
+    return ['50516', W, ttResult, '691b3924'].join(':')
 }
 // "50367:03059bc2c4e8e5a8b706dd16cb9654062adaecb3:b30:691739e1"
 
 export const getRequestAdditionalItems = (url: string, userId: string | null) => {
     const time = +new Date
-    const t = `twFXBitgr6veiKlIh74YEOLLb55N26Pr\n${time}\n${url}\n${userId || 0}`
+    const t = `cOuqi6etsttTiQF5yDDOvV8XK7X90Vvb\n${time}\n${url}\n${userId || 0}`
     const hexCode = new HashHelper().update(t).hex()
     return {
         time: time.toString(),
