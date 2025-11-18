@@ -30,6 +30,7 @@ import { Bot, Save } from 'lucide-react';
 import { supabase, AIConfiguration } from '../lib/supabase';
 import { LoadingState } from '../components/common/LoadingState';
 import { useAuth } from '../contexts/AuthContext';
+import { StyledButton } from '../components/common/StyledButton';
 
 export const AIConfigView = () => {
   const [config, setConfig] = useState<Partial<AIConfiguration>>({
@@ -357,15 +358,15 @@ export const AIConfigView = () => {
           </CardBody>
         </Card>
 
-        <Button
+        <StyledButton
           leftIcon={<Save size={20} />}
-          colorScheme="blue"
-          size="lg"
           onClick={handleSave}
           isLoading={saving}
+          justifyContent="flex-start"
+          w="fit-content"
         >
           Save Configuration
-        </Button>
+        </StyledButton>
       </VStack>
     </Box>
   );

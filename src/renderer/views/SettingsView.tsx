@@ -20,6 +20,7 @@ import { Save } from 'lucide-react';
 import { supabase, Profile } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { LoadingState } from '../components/common/LoadingState';
+import { StyledButton } from '../components/common/StyledButton';
 
 export const SettingsView = () => {
   const [profile, setProfile] = useState<Partial<Profile>>({
@@ -148,14 +149,15 @@ export const SettingsView = () => {
                 />
               </FormControl>
 
-              <Button
+              <StyledButton
                 leftIcon={<Save size={20} />}
-                colorScheme="blue"
                 onClick={handleSave}
                 isLoading={saving}
+                justifyContent="flex-start"
+                w="fit-content"
               >
                 Save Changes
-              </Button>
+              </StyledButton>
             </VStack>
           </CardBody>
         </Card>

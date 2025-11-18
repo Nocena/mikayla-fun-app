@@ -32,6 +32,7 @@ import { getPlatformColor, getPlatformLogo } from '../utils/platform';
 import { useAccountStatus } from '../contexts/AccountStatusContext';
 import { LoadingState } from '../components/common/LoadingState';
 import { useSocialAccounts } from '../contexts/SocialAccountsContext';
+import { StyledButton } from '../components/common/StyledButton';
 
 export const SocialAccountsView = () => {
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
@@ -160,9 +161,13 @@ export const SocialAccountsView = () => {
             View accounts on the currently selected team
           </Text>
         </Box>
-        <Button leftIcon={<Plus size={18} />} colorScheme="blue" onClick={onOpen}>
+        <StyledButton 
+          leftIcon={<Plus size={18} />} 
+          onClick={onOpen}
+          w="fit-content"
+        >
           Link a new Account
-        </Button>
+        </StyledButton>
       </Flex>
 
       {accounts.length === 0 ? (
@@ -184,9 +189,12 @@ export const SocialAccountsView = () => {
           <Text color="text.subtle" textAlign="center">
             Connect your social media accounts to start managing messages in one place
           </Text>
-          <Button colorScheme="blue" onClick={onOpen} mt={4}>
+          <StyledButton 
+            onClick={onOpen} 
+            mt={4}
+          >
             Connect Your First Account
-          </Button>
+          </StyledButton>
         </VStack>
       ) : (
         <Box
