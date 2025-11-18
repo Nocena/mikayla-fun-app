@@ -7,9 +7,10 @@ import {Avatar} from "./Avatar";
 interface ChatWindowProps {
   conversation: Conversation | null;
   onSendMessage: (content: string, sender: 'model' | 'ai') => void;
+  sendingMessage?: boolean;
 }
 
-export const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onSendMessage }) => {
+export const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onSendMessage, sendingMessage = false }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -61,6 +62,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onSendMess
             <MessageInput
               onSendMessage={onSendMessage}
               conversationHistory={conversation.messages}
+              sendingMessage={sendingMessage}
             />
         </div>
     </div>

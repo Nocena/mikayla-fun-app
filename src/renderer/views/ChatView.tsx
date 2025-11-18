@@ -7,6 +7,7 @@ import {useSocialAccounts} from '../contexts/SocialAccountsContext';
 import {useWebviews} from '../contexts/WebviewContext';
 import {useFetchMessages} from '../hooks/useFetchMessages';
 import {useSendMessage} from '../hooks/useSendMessage';
+import {toast} from '../lib/toast';
 
 export const ChatView = () => {
   const { conversations, updateConversation } = useConversations();
@@ -137,13 +138,6 @@ export const ChatView = () => {
       timestamp: new Date().toISOString(),
     };
 
-    const optimisticConversation = {
-      ...selectedConversation,
-      messages: [...selectedConversation.messages, tempMessage],
-    };
-    setSelectedConversation(optimisticConversation);
-    updateConversation(optimisticConversation.id, optimisticConversation);
-
     try {
       // Send message via API
       const success = await sendMessage(
@@ -170,16 +164,25 @@ export const ChatView = () => {
           updateConversation(updatedConversation.id, updatedConversation);
         }
       } else {
-        // Failed to send, remove optimistic message
-        setSelectedConversation(selectedConversation);
-        updateConversation(selectedConversation.id, selectedConversation);
+        // Failed to send
+        toast({
+          title: 'Failed to send message',
+          description: 'Please try again later.',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
         console.error('Failed to send message');
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      // Remove optimistic message on error
-      setSelectedConversation(selectedConversation);
-      updateConversation(selectedConversation.id, selectedConversation);
+      toast({
+        title: 'Failed to send message',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
     } finally {
       setSendingMessage(false);
     }
@@ -197,6 +200,7 @@ export const ChatView = () => {
         <ChatWindow
             conversation={selectedConversation}
             onSendMessage={handleSendMessage}
+            sendingMessage={sendingMessage}
         />
       </div>
   );

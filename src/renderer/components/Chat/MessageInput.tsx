@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AIControls } from './AIControls';
 import {AIMode, Message} from "../../types/chat";
 import {SendIcon} from "./icons/SendIcon";
@@ -6,21 +6,32 @@ import {SendIcon} from "./icons/SendIcon";
 interface MessageInputProps {
   onSendMessage: (content: string, sender: 'model' | 'ai') => void;
   conversationHistory: Message[];
+  sendingMessage?: boolean;
 }
 
-export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, conversationHistory }) => {
+export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, conversationHistory, sendingMessage = false }) => {
   const [text, setText] = useState('');
   const [aiMode, setAiMode] = useState<AIMode>('suggest');
+  const prevSendingRef = useRef(false);
+
+  // Clear text when sending completes (sendingMessage changes from true to false)
+  useEffect(() => {
+    if (prevSendingRef.current && !sendingMessage) {
+      // Was sending, now not sending - clear the text
+      setText('');
+    }
+    prevSendingRef.current = sendingMessage;
+  }, [sendingMessage]);
 
   const handleSend = () => {
-    if (text.trim()) {
+    if (text.trim() && !sendingMessage) {
       onSendMessage(text, 'model'); // Assume manual sends are from the 'model'
-      setText('');
+      // Don't clear text here - keep it in the box while sending
     }
   };
   
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !sendingMessage) {
       e.preventDefault();
       handleSend();
     }
@@ -41,14 +52,22 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, conve
                 onKeyDown={handleKeyDown}
                 placeholder="Type your message..."
                 rows={2}
-                className="w-full bg-surface border border-border-color rounded-lg p-3 pr-12 resize-none focus:ring-2 focus:ring-primary focus:outline-none transition-all"
+                disabled={sendingMessage}
+                className="w-full bg-surface border border-border-color rounded-lg p-3 pr-12 resize-none focus:ring-2 focus:ring-primary focus:outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             />
             <button
                 onClick={handleSend}
-                className="absolute right-3 bottom-3 p-2 bg-primary text-white rounded-full hover:bg-purple-500 transition-colors disabled:bg-surface disabled:text-text-secondary"
-                disabled={!text.trim()}
+                className="absolute right-3 bottom-3 p-2 bg-primary text-white rounded-full hover:bg-purple-500 transition-colors disabled:bg-surface disabled:text-text-secondary disabled:cursor-not-allowed flex items-center justify-center"
+                disabled={!text.trim() || sendingMessage}
             >
-                <SendIcon className="w-5 h-5" />
+                {sendingMessage ? (
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                ) : (
+                    <SendIcon className="w-5 h-5" />
+                )}
             </button>
         </div>
     </div>
