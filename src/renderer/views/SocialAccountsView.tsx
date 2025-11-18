@@ -31,6 +31,7 @@ import { AddAccountModal } from '../components/SocialAccounts/AddAccountModal';
 import { getPlatformColor, getPlatformLogo } from '../utils/platform';
 import { useAccountStatus } from '../contexts/AccountStatusContext';
 import { AccountWebviewManager } from '../components/Clients/AccountWebviewManager';
+import { LoadingState } from '../components/common/LoadingState';
 
 export const SocialAccountsView = () => {
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
@@ -125,7 +126,7 @@ export const SocialAccountsView = () => {
   };
 
   if (loading) {
-    return <Text>Loading accounts...</Text>;
+    return <LoadingState message="Loading accounts..." variant="skeleton" />;
   }
 
   return (

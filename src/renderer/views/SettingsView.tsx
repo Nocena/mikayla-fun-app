@@ -19,6 +19,7 @@ import { useState, useEffect } from 'react';
 import { Save } from 'lucide-react';
 import { supabase, Profile } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { LoadingState } from '../components/common/LoadingState';
 
 export const SettingsView = () => {
   const [profile, setProfile] = useState<Partial<Profile>>({
@@ -89,7 +90,7 @@ export const SettingsView = () => {
   };
 
   if (loading) {
-    return <Text>Loading settings...</Text>;
+    return <LoadingState message="Loading settings..." variant="skeleton" />;
   }
 
   return (

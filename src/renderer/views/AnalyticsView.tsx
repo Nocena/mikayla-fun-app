@@ -28,6 +28,7 @@ import { supabase, Analytics } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocialAccounts } from '../contexts/SocialAccountsContext';
 import { StatCard } from '../components/Analytics/StatCard';
+import { LoadingState } from '../components/common/LoadingState';
 
 export const AnalyticsView = () => {
   const [analytics, setAnalytics] = useState<Analytics[]>([]);
@@ -114,22 +115,25 @@ export const AnalyticsView = () => {
     : 0;
 
   if (loading) {
-    return (
-      <Flex justify="center" align="center" minH="400px">
-        <Spinner size="xl" color="blue.500" />
-      </Flex>
-    );
+    return <LoadingState message="Loading analytics..." variant="spinner" />;
   }
 
   return (
     <Box>
-      <Flex mb={8} justify="space-between" align="center" flexWrap="wrap" gap={4}>
-        <Heading size="lg">Analytics Dashboard</Heading>
-        <HStack spacing={4} flexWrap="wrap">
+      <Flex 
+        mb={8} 
+        justify="space-between" 
+        align="center" 
+        flexWrap={{ base: 'wrap', md: 'nowrap' }} 
+        gap={4}
+        direction={{ base: 'column', md: 'row' }}
+      >
+        <Heading size="lg" flexShrink={0}>Analytics Dashboard</Heading>
+        <HStack spacing={4} flexShrink={0}>
           <Select
             value={selectedAccount}
             onChange={(e) => setSelectedAccount(e.target.value)}
-            maxW="250px"
+            w={{ base: 'full', md: '250px' }}
             bg="bg.surface"
           >
             <option value="all">All Accounts</option>
@@ -142,7 +146,7 @@ export const AnalyticsView = () => {
           <Select
             value={dateRange}
             onChange={(e) => setDateRange(e.target.value)}
-            maxW="200px"
+            w={{ base: 'full', md: '200px' }}
             bg="bg.surface"
           >
             <option value="7">Last 7 days</option>

@@ -18,6 +18,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { MessageCard } from '../components/Inbox/MessageCard';
 import { MessageDetailModal } from '../components/Inbox/MessageDetailModal';
 import { InboxFilters } from '../components/Inbox/InboxFilters';
+import { LoadingState } from '../components/common/LoadingState';
 
 export const InboxView = () => {
   const [messages, setMessages] = useState<(Message & { social_account?: any })[]>([]);
@@ -119,11 +120,7 @@ export const InboxView = () => {
   const unrepliedCount = messages.filter((m) => !m.is_replied).length;
 
   if (initialLoading) {
-    return (
-      <Flex justify="center" align="center" minH="400px">
-        <Spinner size="xl" color="blue.500" />
-      </Flex>
-    );
+    return <LoadingState message="Loading messages..." variant="spinner" />;
   }
 
   return (

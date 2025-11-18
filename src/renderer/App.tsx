@@ -20,6 +20,7 @@ import { Box, Container, Flex, Text, Image } from '@chakra-ui/react';
 import theme from './theme';
 import logoImage from './assets/logo.png';
 import {ChatView} from "./views/ChatView";
+import { LoadingState } from './components/common/LoadingState';
 
 function AuthScreen() {
   const [showLogin, setShowLogin] = useState(true);
@@ -54,11 +55,7 @@ function AppContent() {
   const { activeView, setActiveView } = useNavigation();
 
   if (loading) {
-    return (
-      <Flex minH="100vh" align="center" justify="center">
-        <Text>Loading...</Text>
-      </Flex>
-    );
+    return <LoadingState message="Loading..." variant="minimal" />;
   }
 
   if (!user) {

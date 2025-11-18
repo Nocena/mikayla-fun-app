@@ -28,6 +28,7 @@ import {
 import { toast } from '../lib/toast';
 import { Bot, Save } from 'lucide-react';
 import { supabase, AIConfiguration } from '../lib/supabase';
+import { LoadingState } from '../components/common/LoadingState';
 import { useAuth } from '../contexts/AuthContext';
 
 export const AIConfigView = () => {
@@ -160,7 +161,7 @@ export const AIConfigView = () => {
   };
 
   if (loading) {
-    return <Text>Loading configuration...</Text>;
+    return <LoadingState message="Loading configuration..." variant="skeleton" />;
   }
 
   return (
