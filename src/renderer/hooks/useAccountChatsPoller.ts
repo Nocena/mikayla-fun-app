@@ -80,6 +80,7 @@ export const useAccountChatsPoller = ({ accounts, webviewRefs }: UseAccountChats
           const conversations = buildConversations(
               chatsRes.data,
               usersRes.data,
+              acc.id, // Pass account ID
           );
           console.log("conversations", conversations);
           

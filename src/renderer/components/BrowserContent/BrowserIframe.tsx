@@ -37,6 +37,7 @@ export const BrowserIframe = forwardRef<BrowserIframeHandle, BrowserIframeProps>
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const domReadyRef = useRef(false);
   const pendingZoomRef = useRef(zoomFactor);
+  const hasLoadedOnceRef = useRef(false);
 
   const updateStatus = (nextStatus: BrowserStatus, message?: string) => {
     setStatus(nextStatus);
@@ -47,6 +48,7 @@ export const BrowserIframe = forwardRef<BrowserIframeHandle, BrowserIframeProps>
   const reload = () => {
     const webview = webviewRef.current as any;
     if (!webview) return;
+    hasLoadedOnceRef.current = false; // Reset on reload
     updateStatus('loading');
     webview.reload();
   };
@@ -123,6 +125,7 @@ export const BrowserIframe = forwardRef<BrowserIframeHandle, BrowserIframeProps>
     if (!webview) return;
 
     domReadyRef.current = false;
+    hasLoadedOnceRef.current = false;
     updateStatus('loading');
 
     // Ensure the target partition is configured in the main process before traffic
@@ -165,6 +168,10 @@ export const BrowserIframe = forwardRef<BrowserIframeHandle, BrowserIframeProps>
         captureIntervalRef.current = null;
       }
 
+      // Reset loading state for new navigation
+      hasLoadedOnceRef.current = false;
+      updateStatus('loading');
+
       // Start capturing for new page
       if (event.url && event.url !== 'about:blank') {
         setTimeout(() => {
@@ -181,10 +188,15 @@ export const BrowserIframe = forwardRef<BrowserIframeHandle, BrowserIframeProps>
     };
 
     const handleDidStartLoading = () => {
-      updateStatus('loading');
+      // Only show loading if it's a new page load or refresh
+      // If the page has already loaded once, don't show loading for subsequent navigations
+      if (!hasLoadedOnceRef.current) {
+        updateStatus('loading');
+      }
     };
 
     const handleDidStopLoading = () => {
+      hasLoadedOnceRef.current = true;
       updateStatus('ready');
     };
 

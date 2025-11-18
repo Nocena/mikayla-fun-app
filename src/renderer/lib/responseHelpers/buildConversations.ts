@@ -4,6 +4,7 @@ import {Conversation, Fan, Message} from "../../types/chat";
 export function buildConversations(
     chats: OnlyFansChatsResponse,
     users: OnlyFansUsersResponse,
+    accountId?: string,
 ): Conversation[] {
     if (!chats.list || chats.list.length === 0) return [];
 
@@ -47,7 +48,8 @@ export function buildConversations(
             messages: [message],
             unreadCount: entry.unreadMessagesCount,
             lastMessage: msg.text || "",
-            lastMessageTimestamp: msg.createdAt
+            lastMessageTimestamp: msg.createdAt,
+            accountId: accountId
         };
 
         return conversation;

@@ -18,6 +18,12 @@ export const ChatView = () => {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
 
+  // Filter conversations to only show those from existing accounts
+  const accountIds = new Set(accounts.map(acc => acc.id));
+  const filteredConversations = conversations.filter(conv => 
+    !conv.accountId || accountIds.has(conv.accountId)
+  );
+
   // Read conversation ID from URL params on mount and when URL changes
   useEffect(() => {
     const updateSelectedFromUrl = () => {
@@ -25,9 +31,12 @@ export const ChatView = () => {
       const conversationId = params.get('conversation');
       
       if (conversationId) {
-        const found = conversations.find(c => c.id === conversationId);
+        const found = filteredConversations.find(c => c.id === conversationId);
         if (found) {
           setSelectedConversation(found);
+        } else {
+          // Conversation was filtered out (account deleted), clear selection
+          setSelectedConversation(null);
         }
       } else {
         setSelectedConversation(null);
@@ -39,17 +48,20 @@ export const ChatView = () => {
     // Listen for popstate events (back/forward navigation)
     window.addEventListener('popstate', updateSelectedFromUrl);
     return () => window.removeEventListener('popstate', updateSelectedFromUrl);
-  }, [conversations]);
+  }, [filteredConversations]);
 
   // Update selected conversation when conversations list changes (e.g., after fetching)
   useEffect(() => {
     if (selectedConversation) {
-      const updated = conversations.find(c => c.id === selectedConversation.id);
+      const updated = filteredConversations.find(c => c.id === selectedConversation.id);
       if (updated) {
         setSelectedConversation(updated);
+      } else {
+        // Selected conversation was filtered out (account deleted), clear selection
+        setSelectedConversation(null);
       }
     }
-  }, [conversations]);
+  }, [filteredConversations, selectedConversation]);
 
   // Fetch messages when conversation is selected
   useEffect(() => {
@@ -62,14 +74,15 @@ export const ChatView = () => {
       setLoadingMessages(true);
       
       // Find the account that owns this conversation
-      // For now, we'll try the first OnlyFans account
-      const onlyFansAccount = accounts.find(acc => acc.platform.toLowerCase() === 'onlyfans');
+      const account = selectedConversation.accountId 
+        ? accounts.find(acc => acc.id === selectedConversation.accountId)
+        : accounts.find(acc => acc.platform.toLowerCase() === 'onlyfans'); // Fallback for old conversations
       
-      if (onlyFansAccount && onlyFansAccount.platform_user_id) {
+      if (account && account.platform_user_id) {
         fetchMessages(
           selectedConversation.id, // chatId
-          onlyFansAccount.platform_user_id,
-          onlyFansAccount.id
+          account.platform_user_id,
+          account.id
         ).then((messages) => {
           if (messages.length > 0) {
             const updatedConversation = {
@@ -91,7 +104,7 @@ export const ChatView = () => {
   }, [selectedConversation?.id, fetchMessages, accounts, updateConversation]);
 
   const handleConversationClick = (conversationId: string) => {
-    const found = conversations.find(c => c.id === conversationId);
+    const found = filteredConversations.find(c => c.id === conversationId);
     if (found) {
       setSelectedConversation(found);
       // Update URL params without page reload
@@ -105,10 +118,12 @@ export const ChatView = () => {
     if (!selectedConversation || sendingMessage) return;
 
     // Find the account that owns this conversation
-    const onlyFansAccount = accounts.find(acc => acc.platform.toLowerCase() === 'onlyfans');
+    const account = selectedConversation.accountId 
+      ? accounts.find(acc => acc.id === selectedConversation.accountId)
+      : accounts.find(acc => acc.platform.toLowerCase() === 'onlyfans'); // Fallback for old conversations
     
-    if (!onlyFansAccount || !onlyFansAccount.platform_user_id) {
-      console.error('No OnlyFans account found to send message');
+    if (!account || !account.platform_user_id) {
+      console.error('No account found to send message');
       return;
     }
 
@@ -134,16 +149,16 @@ export const ChatView = () => {
       const success = await sendMessage(
         selectedConversation.id, // chatId
         content,
-        onlyFansAccount.platform_user_id,
-        onlyFansAccount.id
+        account.platform_user_id,
+        account.id
       );
 
       if (success) {
         // Message sent successfully, refetch messages to get the actual message from API
         const messages = await fetchMessages(
           selectedConversation.id,
-          onlyFansAccount.platform_user_id,
-          onlyFansAccount.id
+          account.platform_user_id,
+          account.id
         );
 
         if (messages.length > 0) {
@@ -174,9 +189,10 @@ export const ChatView = () => {
   return (
       <div className="flex h-[calc(100vh-8.5rem)] bg-panel border border-border-color rounded-2xl overflow-hidden">
         <ConversationList
-            conversations={conversations}
+            conversations={filteredConversations}
             selectedConversationId={selectedConversation?.id}
             onConversationClick={handleConversationClick}
+            accounts={accounts}
         />
         <ChatWindow
             conversation={selectedConversation}

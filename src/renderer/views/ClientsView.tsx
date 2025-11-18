@@ -17,6 +17,7 @@ import {
   IconButton,
   Tooltip,
   useColorModeValue,
+  Image,
 } from '@chakra-ui/react';
 import {
   Search,
@@ -36,7 +37,7 @@ import { useNavigation } from '../contexts/NavigationContext';
 import { AddAccountModal } from '../components/SocialAccounts/AddAccountModal';
 import { BrowserIframe, BrowserIframeHandle, BrowserStatus } from '../components/BrowserContent/BrowserIframe';
 import { toast } from '../lib/toast';
-import { getPlatformColor, getPlatformUrl, getPlatformMeta } from '../utils/platform';
+import { getPlatformColor, getPlatformUrl, getPlatformMeta, getPlatformLogo } from '../utils/platform';
 import { GradientButton } from '../components/common/GradientButton';
 import { useAccountStatus } from '../contexts/AccountStatusContext';
 import { useSocialAccounts } from '../contexts/SocialAccountsContext';
@@ -329,15 +330,48 @@ export const ClientsView = () => {
                   transition="all 0.2s"
                 >
                   <Flex align="center" gap={3}>
-                    <Avatar size="sm" name={'New Account'} />
+                    {getPlatformLogo(pendingAccount.platform) ? (
+                      <Box
+                        w="40px"
+                        h="40px"
+                        borderRadius="full"
+                        bg="bg.surface"
+                        borderWidth="1px"
+                        borderColor="border.default"
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="center"
+                        flexShrink={0}
+                      >
+                        <Image
+                          src={getPlatformLogo(pendingAccount.platform)}
+                          alt={pendingAccount.platform}
+                          w="24px"
+                          h="24px"
+                          objectFit="contain"
+                        />
+                      </Box>
+                    ) : (
+                      <Avatar size="sm" name={'New Account'} />
+                    )}
                     <VStack align="flex-start" spacing={0} flex={1} minW={0}>
                       <Text fontSize="sm" fontWeight="semibold" isTruncated>
                         New Account
                       </Text>
                       <HStack spacing={2}>
-                        <Badge colorScheme={getPlatformColor(pendingAccount.platform)} fontSize="xs">
-                          {pendingAccount.platform}
-                        </Badge>
+                        {getPlatformLogo(pendingAccount.platform) ? (
+                          <Image
+                            src={getPlatformLogo(pendingAccount.platform)}
+                            alt={pendingAccount.platform}
+                            w="16px"
+                            h="16px"
+                            objectFit="contain"
+                          />
+                        ) : (
+                          <Badge colorScheme={getPlatformColor(pendingAccount.platform)} fontSize="xs">
+                            {pendingAccount.platform}
+                          </Badge>
+                        )}
                       </HStack>
                     </VStack>
                   </Flex>
@@ -389,12 +423,22 @@ export const ClientsView = () => {
                               Sync Lost
                             </Text>
                           )}
-                          <Badge
-                            colorScheme={getPlatformColor(account.platform)}
-                            fontSize="xs"
-                          >
-                            {account.platform}
-                          </Badge>
+                          {getPlatformLogo(account.platform) ? (
+                            <Image
+                              src={getPlatformLogo(account.platform)}
+                              alt={account.platform}
+                              w="16px"
+                              h="16px"
+                              objectFit="contain"
+                            />
+                          ) : (
+                            <Badge
+                              colorScheme={getPlatformColor(account.platform)}
+                              fontSize="xs"
+                            >
+                              {account.platform}
+                            </Badge>
+                          )}
                         </HStack>
                       </VStack>
                     </Flex>
@@ -422,7 +466,7 @@ export const ClientsView = () => {
             {linking && pendingAccount && (
               <Tooltip
                 key={`pending-${pendingAccount.id}`}
-                label={`New Account (${pendingAccount.platform})`}
+                label={`New Account`}
                 placement="right"
               >
                 <Box
@@ -434,8 +478,23 @@ export const ClientsView = () => {
                   onClick={() => setSelectedAccount(null)}
                   bg={!selectedAccount ? 'bg.muted' : 'transparent'}
                   transition="all 0.2s"
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  w="40px"
+                  h="40px"
                 >
-                  <Avatar size="sm" name={'New Account'} />
+                  {getPlatformLogo(pendingAccount.platform) ? (
+                    <Image
+                      src={getPlatformLogo(pendingAccount.platform)}
+                      alt={pendingAccount.platform}
+                      w="24px"
+                      h="24px"
+                      objectFit="contain"
+                    />
+                  ) : (
+                    <Avatar size="sm" name={'New Account'} />
+                  )}
                 </Box>
               </Tooltip>
             )}
@@ -447,7 +506,7 @@ export const ClientsView = () => {
               filteredAccounts.map((account) => (
                 <Tooltip
                   key={account.id}
-                  label={`${account.platform_username} (${account.platform})`}
+                  label={account.platform_username}
                   placement="right"
                 >
                   <Box
@@ -498,25 +557,63 @@ export const ClientsView = () => {
             >
               <Flex align="center" justify="space-between" gap={2}>
                 <HStack spacing={3} flex={1}>
-                  <Avatar
-                    size="xs"
-                    name={selectedAccount ? selectedAccount.platform_username : 'Linking'}
-                    src={selectedAccount ? (selectedAccount.profile_image_url || undefined) : undefined}
-                  />
+                  {selectedAccount ? (
+                    <Avatar
+                      size="xs"
+                      name={selectedAccount.platform_username}
+                      src={selectedAccount.profile_image_url || undefined}
+                    />
+                  ) : linking && pendingAccount && getPlatformLogo(pendingAccount.platform) ? (
+                    <Box
+                      w="24px"
+                      h="24px"
+                      borderRadius="full"
+                      bg="bg.surface"
+                      borderWidth="1px"
+                      borderColor="border.default"
+                      display="flex"
+                      alignItems="center"
+                      justifyContent="center"
+                      flexShrink={0}
+                    >
+                      <Image
+                        src={getPlatformLogo(pendingAccount.platform)}
+                        alt={pendingAccount.platform}
+                        w="18px"
+                        h="18px"
+                        objectFit="contain"
+                      />
+                    </Box>
+                  ) : (
+                    <Avatar
+                      size="xs"
+                      name="Linking"
+                    />
+                  )}
                   <VStack align="flex-start" spacing={0} flex={1}>
                     <Text fontSize="xs" fontWeight="medium" isTruncated>
                       {selectedAccount
-                        ? `${selectedAccount.platform_username} (${selectedAccount.platform})`
-                        : `Linking OnlyFans...`}
+                        ? selectedAccount.platform_username
+                        : `Linking...`}
                     </Text>
                     <Text fontSize="xs" color={statusColor} noOfLines={1}>
                       {statusText}
                       {browserStatus === 'error' && browserError ? ` — ${browserError}` : ''}
                     </Text>
                   </VStack>
-                  <Badge colorScheme={getPlatformColor(selectedAccount ? selectedAccount.platform : 'onlyfans')} fontSize="xs">
-                    {selectedAccount ? selectedAccount.platform : 'onlyfans'}
-                  </Badge>
+                  {getPlatformLogo(selectedAccount ? selectedAccount.platform : 'onlyfans') ? (
+                    <Image
+                      src={getPlatformLogo(selectedAccount ? selectedAccount.platform : 'onlyfans')}
+                      alt={selectedAccount ? selectedAccount.platform : 'onlyfans'}
+                      w="20px"
+                      h="20px"
+                      objectFit="contain"
+                    />
+                  ) : (
+                    <Badge colorScheme={getPlatformColor(selectedAccount ? selectedAccount.platform : 'onlyfans')} fontSize="xs">
+                      {selectedAccount ? selectedAccount.platform : 'onlyfans'}
+                    </Badge>
+                  )}
                   {selectedAccount && !selectedAccount.is_active && (
                     <Badge colorScheme="red" fontSize="xs">
                       Sync Lost
@@ -640,12 +737,22 @@ export const ClientsView = () => {
                                 </Text>
                               </HStack>
                             )}
-                            <Badge
-                              colorScheme={getPlatformColor(account.platform)}
-                              fontSize="xs"
-                            >
-                              {account.platform}
-                            </Badge>
+                            {getPlatformLogo(account.platform) ? (
+                              <Image
+                                src={getPlatformLogo(account.platform)}
+                                alt={account.platform}
+                                w="20px"
+                                h="20px"
+                                objectFit="contain"
+                              />
+                            ) : (
+                              <Badge
+                                colorScheme={getPlatformColor(account.platform)}
+                                fontSize="xs"
+                              >
+                                {account.platform}
+                              </Badge>
+                            )}
                           </HStack>
                         </VStack>
                       </Flex>

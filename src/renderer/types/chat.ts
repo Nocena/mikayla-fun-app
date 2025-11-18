@@ -23,6 +23,7 @@ export interface Conversation {
     unreadCount: number;
     lastMessage: string;
     lastMessageTimestamp: string;
+    accountId?: string; // ID of the social account this conversation belongs to
 }
 
 export type AIMode = 'suggest' | 'autocomplete' | 'automated';
