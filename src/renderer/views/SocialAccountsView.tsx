@@ -21,13 +21,14 @@ import {
   MenuButton,
   MenuList,
   MenuItem,
+  Image,
 } from '@chakra-ui/react';
 import { toast } from '../lib/toast';
 import { Plus, Users, MoreHorizontal, Settings, MessageSquare, AlertCircle } from 'lucide-react';
 import { supabase, SocialAccount } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { AddAccountModal } from '../components/SocialAccounts/AddAccountModal';
-import { getPlatformColor } from '../utils/platform';
+import { getPlatformColor, getPlatformLogo } from '../utils/platform';
 import { useAccountStatus } from '../contexts/AccountStatusContext';
 import { AccountWebviewManager } from '../components/Clients/AccountWebviewManager';
 
@@ -37,7 +38,6 @@ export const SocialAccountsView = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { user } = useAuth();
   const { statusById } = useAccountStatus();
-  
 
   useEffect(() => {
     fetchAccounts();
@@ -131,7 +131,7 @@ export const SocialAccountsView = () => {
   return (
     <Box position="relative">
       {/* Background webviews for each account to keep sessions and run JS (e.g., /me sync checks) */}
-      <AccountWebviewManager accounts={accounts} />
+      {/*<AccountWebviewManager accounts={accounts} />*/}
       <Flex mb={6} justify="space-between" align="center">
         <Box>
           <Heading size="lg" mb={1}>Accounts</Heading>
@@ -229,9 +229,19 @@ export const SocialAccountsView = () => {
                           @{account.platform_username}
                         </Text>
                       </Box>
-                      <Badge colorScheme={getPlatformColor(account.platform)} fontSize="xs">
-                        {account.platform}
-                      </Badge>
+                      {getPlatformLogo(account.platform) ? (
+                        <Image
+                          src={getPlatformLogo(account.platform)}
+                          alt={account.platform}
+                          w="20px"
+                          h="20px"
+                          objectFit="contain"
+                        />
+                      ) : (
+                        <Badge colorScheme={getPlatformColor(account.platform)} fontSize="xs">
+                          {account.platform}
+                        </Badge>
+                      )}
                     </Flex>
                   </Td>
                   <Td>

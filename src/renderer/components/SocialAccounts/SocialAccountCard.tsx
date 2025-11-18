@@ -9,11 +9,12 @@ import {
   MenuButton,
   MenuList,
   MenuItem,
+  Image,
 } from '@chakra-ui/react';
 import { toast } from '../../lib/toast';
 import { MoreVertical, Trash2, RefreshCw, Power } from 'lucide-react';
 import { SocialAccount } from '../../lib/supabase';
-import { getPlatformColor } from '../../utils/platform';
+import { getPlatformColor, getPlatformLogo } from '../../utils/platform';
 
 interface SocialAccountCardProps {
   account: SocialAccount;
@@ -61,9 +62,19 @@ export const SocialAccountCard = ({
               <Text fontSize="lg" fontWeight="semibold">
                 {account.platform_username}
               </Text>
-              <Badge colorScheme={getPlatformColor(account.platform)}>
-                {account.platform}
-              </Badge>
+              {getPlatformLogo(account.platform) ? (
+                <Image
+                  src={getPlatformLogo(account.platform)}
+                  alt={account.platform}
+                  w="20px"
+                  h="20px"
+                  objectFit="contain"
+                />
+              ) : (
+                <Badge colorScheme={getPlatformColor(account.platform)}>
+                  {account.platform}
+                </Badge>
+              )}
             </Flex>
             <Text fontSize="sm" color="text.muted">
               {account.is_active ? 'Active' : 'Inactive'}

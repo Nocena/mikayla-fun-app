@@ -16,11 +16,13 @@ import {
   Checkbox,
   VStack,
   Divider,
+  Image,
 } from '@chakra-ui/react';
 import { Moon, Sun, ChevronDown, RefreshCw, Settings } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { getPlatformLogo } from '../../utils/platform';
 
 interface SocialAccount {
   id: string;
@@ -214,9 +216,19 @@ export const Header = ({ onViewChange }: HeaderProps) => {
                               {account.platform_username}
                             </Text>
                             <HStack spacing={2}>
-                              <Text fontSize="xs" color="gray.500">
-                                {account.platform}
-                              </Text>
+                              {getPlatformLogo(account.platform) ? (
+                                <Image
+                                  src={getPlatformLogo(account.platform)}
+                                  alt={account.platform}
+                                  w="16px"
+                                  h="16px"
+                                  objectFit="contain"
+                                />
+                              ) : (
+                                <Text fontSize="xs" color="gray.500">
+                                  {account.platform}
+                                </Text>
+                              )}
                               <Badge
                                 colorScheme={
                                   syncStatus.status === 'success'

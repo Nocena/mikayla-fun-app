@@ -7,21 +7,24 @@ import {
   ModalCloseButton,
   VStack,
   Button,
-  Icon,
   Text,
+  Image,
+  Box,
 } from '@chakra-ui/react';
 import { toast } from '../../lib/toast';
-import { DollarSign, Heart, Star, Shield } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 import { getCreatorPlatforms } from '../../utils/platform';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigation } from '../../contexts/NavigationContext';
+import onlyfansLogo from '../../assets/onlyfans.svg';
+import fanslyLogo from '../../assets/fansly.svg';
+import patreonLogo from '../../assets/patreon-logo.png';
+import heroheroLogo from '../../assets/herohero.svg';
 
-const platformIconMap: Record<string, LucideIcon> = {
-  onlyfans: DollarSign,
-  fansly: Heart,
-  patreon: Star,
-  herohero: Shield,
+const platformLogoMap: Record<string, string> = {
+  onlyfans: onlyfansLogo,
+  fansly: fanslyLogo,
+  patreon: patreonLogo,
+  herohero: heroheroLogo,
 };
 
 interface AddAccountModalProps {
@@ -42,7 +45,7 @@ export const AddAccountModal = ({
     key: platform.key,
     name: platform.name,
     color: platform.colorScheme,
-    icon: platformIconMap[platform.key],
+    logo: platformLogoMap[platform.key],
     isEnabled: platform.key === 'onlyfans',
   }));
 
@@ -73,10 +76,10 @@ export const AddAccountModal = ({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="md">
-      <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>Connect Social Account</ModalHeader>
-        <ModalCloseButton />
+      <ModalOverlay bg="blackAlpha.800" />
+      <ModalContent bg="bg.canvas" borderColor="border.default" borderWidth="1px">
+        <ModalHeader color="text.default">Connect Social Account</ModalHeader>
+        <ModalCloseButton color="text.muted" />
         <ModalBody pb={6}>
           <VStack spacing={3}>
             {platforms.map((platform) => (
@@ -84,20 +87,60 @@ export const AddAccountModal = ({
                 key={platform.key}
                 w="full"
                 size="lg"
-                leftIcon={<Icon as={platform.icon} />}
-                colorScheme={platform.color}
+                bg="bg.subtle"
+                color={platform.isEnabled ? 'text.default' : 'text.muted'}
                 onClick={() => platform.isEnabled && handleConnect(platform.name, platform.key)}
                 isDisabled={!platform.isEnabled}
                 justifyContent="flex-start"
+                pl={4}
+                pr={4}
+                py={6}
+                borderWidth="1px"
+                borderColor="border.default"
+                borderRadius="lg"
+                transition="all 0.2s"
+                _hover={
+                  platform.isEnabled
+                    ? {
+                        bg: 'bg.muted',
+                        borderColor: 'border.subtle',
+                        transform: 'translateY(-1px)',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                      }
+                    : {}
+                }
+                _active={
+                  platform.isEnabled
+                    ? {
+                        transform: 'translateY(0)',
+                        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)',
+                      }
+                    : {}
+                }
+                _disabled={{
+                  opacity: 0.6,
+                  cursor: 'not-allowed',
+                  bg: 'bg.subtle',
+                }}
               >
-                <Text ml={2}>
+                <Box mr={3} w="24px" h="24px" display="flex" alignItems="center" justifyContent="center">
+                  <Image
+                    src={platform.logo}
+                    alt={`${platform.name} logo`}
+                    maxW="24px"
+                    maxH="24px"
+                    objectFit="contain"
+                    opacity={platform.isEnabled ? 1 : 0.6}
+                  />
+                </Box>
+                <Text fontWeight="medium" fontSize="sm">
                   Connect {platform.name}
                   {!platform.isEnabled ? ' (coming soon)' : ''}
                 </Text>
               </Button>
             ))}
           </VStack>
-          <Text fontSize="sm" color="gray.500" mt={4} textAlign="center">
+          <Text fontSize="sm" color="text.muted" mt={4} textAlign="center">
             You'll be redirected to authorize access to your account
           </Text>
         </ModalBody>

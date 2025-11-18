@@ -1,3 +1,9 @@
+// Platform logo imports
+import onlyfansLogo from '../assets/onlyfans.svg';
+import fanslyLogo from '../assets/fansly.svg';
+import patreonLogo from '../assets/patreon-logo.png';
+import heroheroLogo from '../assets/herohero.svg';
+
 type CreatorPlatformKey = 'onlyfans' | 'fansly' | 'patreon' | 'herohero';
 
 export type CreatorPlatformMeta = {
@@ -66,5 +72,17 @@ export const getPlatformColor = (platform: string): string => {
 
 export const getCreatorPlatforms = (): CreatorPlatformMeta[] => {
   return Object.values(PLATFORM_META);
+};
+
+const platformLogoMap: Record<CreatorPlatformKey, string> = {
+  onlyfans: onlyfansLogo,
+  fansly: fanslyLogo,
+  patreon: patreonLogo,
+  herohero: heroheroLogo,
+};
+
+export const getPlatformLogo = (platform: string): string | undefined => {
+  const key = normalizePlatformKey(platform);
+  return key ? platformLogoMap[key] : undefined;
 };
 
