@@ -20,7 +20,7 @@ export function buildConversations(
         const msg = entry.lastMessage;
 
         // Determine the sender
-        const sender: Message["sender"] = "fan"
+        const sender: Message["sender"] = entry.lastMessage?.fromUser?.id == userId ? "fan" : "ai"
 
         // Build Fan object
         const fan: Fan = {

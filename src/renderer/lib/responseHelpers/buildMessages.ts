@@ -20,7 +20,7 @@ export function buildMessages(
 
             // Determine sender: if fromUser.id matches modelUserId, it's from model, otherwise from fan
             const sender: Message["sender"] = 
-                entry.fromUser?.id?.toString() === modelUserId ? "model" : "fan";
+                entry.fromUser?.id?.toString() === modelUserId ? "ai" : "fan";
 
             const message: Message = {
                 id: entry.id.toString(),
