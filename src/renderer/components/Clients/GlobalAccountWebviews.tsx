@@ -7,5 +7,3 @@ export const GlobalAccountWebviews = () => {
   console.log("we have accounts, return accounts", accounts)
   return <AccountWebviewManager accounts={accounts} />;
 };
-
-

@@ -140,6 +140,7 @@ export const ClientsView = () => {
     let timer: any;
     const part = `persist:${pendingAccount.platform}-${pendingAccount.id}`;
     const tick = async () => {
+      console.log("I am in ClientsView Ticking")
       try {
         // Read latest captured request headers for this partition from main (may include cookies, x-bc, etc.)
         const hdrRes = await window.electronAPI.headers.get(part);
@@ -174,8 +175,10 @@ export const ClientsView = () => {
         `);
         if (meRes && meRes.ok && meRes.data && (meRes.data.isAuth === true || meRes.data.is_auth === true)) {
           const ofId = meRes.data.id;
-          const username = meRes.data.username || '';
+          const username = meRes.data.name || meRes.data.username || '';
           const avatar = meRes.data.avatar || null;
+          console.log("username", username)
+
           if (user) {
             if (pendingAccount) {
               // Create new account row now that we have platform_user_id
@@ -218,7 +221,7 @@ export const ClientsView = () => {
         }
       } catch {}
     };
-    timer = setInterval(tick, 1000);
+    timer = setInterval(tick, 2000);
     return () => {
       if (timer) clearInterval(timer);
     };

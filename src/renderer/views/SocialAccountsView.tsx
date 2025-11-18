@@ -30,8 +30,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { AddAccountModal } from '../components/SocialAccounts/AddAccountModal';
 import { getPlatformColor, getPlatformLogo } from '../utils/platform';
 import { useAccountStatus } from '../contexts/AccountStatusContext';
-import { AccountWebviewManager } from '../components/Clients/AccountWebviewManager';
 import { LoadingState } from '../components/common/LoadingState';
+import { useSocialAccounts } from '../contexts/SocialAccountsContext';
 
 export const SocialAccountsView = () => {
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
@@ -39,15 +39,18 @@ export const SocialAccountsView = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { user } = useAuth();
   const { statusById } = useAccountStatus();
+  const { refresh: refreshContext } = useSocialAccounts();
 
   useEffect(() => {
     fetchAccounts();
   }, [user]);
 
-  const fetchAccounts = async () => {
+  const fetchAccounts = async (showLoading = true) => {
     if (!user) return;
 
-    setLoading(true);
+    if (showLoading) {
+      setLoading(true);
+    }
     const { data, error } = await supabase
       .from('social_accounts')
       .select('*')
@@ -64,16 +67,26 @@ export const SocialAccountsView = () => {
     } else {
       setAccounts(data || []);
     }
-    setLoading(false);
+    if (showLoading) {
+      setLoading(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
+    // Optimistically remove the account from UI
+    const accountToDelete = accounts.find(acc => acc.id === id);
+    setAccounts(prev => prev.filter(acc => acc.id !== id));
+
     const { error } = await supabase
       .from('social_accounts')
       .delete()
       .eq('id', id);
 
     if (error) {
+      // Restore the account if deletion failed
+      if (accountToDelete) {
+        setAccounts(prev => [...prev, accountToDelete]);
+      }
       toast({
         title: 'Error removing account',
         description: error.message,
@@ -86,7 +99,10 @@ export const SocialAccountsView = () => {
         status: 'success',
         
       });
-      fetchAccounts();
+      // Refresh silently to ensure consistency, but without showing loading
+      fetchAccounts(false);
+      // Also refresh the context so ClientsView and other components get updated
+      refreshContext();
     }
   };
 
@@ -110,6 +126,8 @@ export const SocialAccountsView = () => {
         
       });
       fetchAccounts();
+      // Refresh the context so ClientsView and other components get updated
+      refreshContext();
     }
   };
 
@@ -123,6 +141,8 @@ export const SocialAccountsView = () => {
       .update({ last_synced_at: new Date().toISOString() })
       .eq('id', id);
     fetchAccounts();
+    // Refresh the context so ClientsView and other components get updated
+    refreshContext();
   };
 
   if (loading) {
@@ -227,7 +247,7 @@ export const SocialAccountsView = () => {
                           {account.platform_username}
                         </Text>
                         <Text fontSize="xs" color="text.muted">
-                          @{account.platform_username}
+                          @{account.platform_user_id}
                         </Text>
                       </Box>
                       {getPlatformLogo(account.platform) ? (
