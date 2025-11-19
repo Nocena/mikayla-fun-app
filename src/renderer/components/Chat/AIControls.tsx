@@ -2,55 +2,56 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SparklesIcon } from './icons/SparklesIcon';
 import { generateReplySuggestions } from '../../services/geminiService';
 import type { AIMode, Message, Personality } from '../../types/chat';
-import {mockPersonalities} from "../../views/mockData";
+import { mockPersonalities } from "../../views/mockData";
 
 interface AIControlsProps {
   currentMode: AIMode;
   onModeChange: (mode: AIMode) => void;
   onSuggestionSelect: (suggestion: string) => void;
   conversationHistory: Message[];
+  socialAccountId?: string;
 }
 
-export const AIControls: React.FC<AIControlsProps> = ({ currentMode, onModeChange, onSuggestionSelect, conversationHistory }) => {
-    const [suggestions, setSuggestions] = useState<string[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [selectedPersonality, setSelectedPersonality] = useState<Personality>(mockPersonalities[0]);
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
+export const AIControls: React.FC<AIControlsProps> = ({ currentMode, onModeChange, onSuggestionSelect, conversationHistory, socialAccountId }) => {
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedPersonality, setSelectedPersonality] = useState<Personality>(mockPersonalities[0]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-    // Handle clicking outside the dropdown to close it
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsDropdownOpen(false);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, [dropdownRef]);
-
-
-    const fetchSuggestions = async () => {
-        setIsLoading(true);
-        setSuggestions([]);
-        try {
-            const result = await generateReplySuggestions(conversationHistory, selectedPersonality);
-            setSuggestions(result);
-        } catch (error) {
-            console.error("Failed to get AI suggestions:", error);
-            setSuggestions(["Sorry, couldn't get suggestions."]);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleSelectPersonality = (personality: Personality) => {
-        setSelectedPersonality(personality);
+  // Handle clicking outside the dropdown to close it
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
-        setSuggestions([]);
+      }
     };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [dropdownRef]);
+
+
+  const fetchSuggestions = async () => {
+    setIsLoading(true);
+    setSuggestions([]);
+    try {
+      const result = await generateReplySuggestions(conversationHistory, selectedPersonality, socialAccountId);
+      setSuggestions(result);
+    } catch (error) {
+      console.error("Failed to get AI suggestions:", error);
+      setSuggestions(["Sorry, couldn't get suggestions."]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSelectPersonality = (personality: Personality) => {
+    setSelectedPersonality(personality);
+    setIsDropdownOpen(false);
+    setSuggestions([]);
+  };
 
   return (
     <div className="bg-panel p-2 rounded-lg border border-border-color">
@@ -84,14 +85,14 @@ export const AIControls: React.FC<AIControlsProps> = ({ currentMode, onModeChang
             )}
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
-            <SparklesIcon className="w-5 h-5 text-primary" />
-            <span className="font-semibold text-sm hidden sm:inline">AI Assist</span>
-            <div className="text-xs text-text-secondary bg-surface px-2 py-1 rounded-md">{currentMode}</div>
+          <SparklesIcon className="w-5 h-5 text-primary" />
+          <span className="font-semibold text-sm hidden sm:inline">AI Assist</span>
+          <div className="text-xs text-text-secondary bg-surface px-2 py-1 rounded-md">{currentMode}</div>
         </div>
       </div>
-      
+
       {currentMode === 'suggest' && (
         <div className="mt-2">
           {suggestions.length === 0 ? (

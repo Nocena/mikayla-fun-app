@@ -81,8 +81,45 @@ export type AIConfiguration = {
     exclude: string[];
   };
   business_context: string | null;
+  active_persona_id: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type AIPersona = {
+  id: string;
+  name: string;
+  description: string | null;
+  system_prompt: string;
+  tone_settings: {
+    warmth?: number;
+    aggression?: number;
+    [key: string]: any;
+  };
+  is_active: boolean;
+  created_at: string;
+};
+
+export type ConversationMemory = {
+  id: string;
+  social_account_id: string;
+  message_id: string;
+  embedding: number[] | null; // Vector type comes back as array or string depending on client
+  context_summary: string | null;
+  sentiment_score: number | null;
+  is_sale_conversion: boolean;
+  created_at: string;
+};
+
+export type SalesEvent = {
+  id: string;
+  social_account_id: string;
+  user_id: string | null;
+  amount: number;
+  currency: string;
+  event_type: 'tip' | 'bundle_purchase' | 'ppv_unlock';
+  related_message_id: string | null;
+  created_at: string;
 };
 
 export type Analytics = {

@@ -11,7 +11,7 @@ import {
   NumberInput,
   NumberInputField,
   Button,
-  
+
   Card,
   CardBody,
   Text,
@@ -24,13 +24,15 @@ import {
   TagCloseButton,
   Icon,
   Flex,
+  Badge,
 } from '@chakra-ui/react';
 import { toast } from '../lib/toast';
-import { Bot, Save } from 'lucide-react';
-import { supabase, AIConfiguration } from '../lib/supabase';
+import { Bot, Save, UserCircle2 } from 'lucide-react';
+import { supabase, AIConfiguration, AIPersona } from '../lib/supabase';
 import { LoadingState } from '../components/common/LoadingState';
 import { useAuth } from '../contexts/AuthContext';
 import { StyledButton } from '../components/common/StyledButton';
+import { aiPersonasService } from '../services/aiPersonasService';
 
 export const AIConfigView = () => {
   const [config, setConfig] = useState<Partial<AIConfiguration>>({
@@ -41,33 +43,55 @@ export const AIConfigView = () => {
     reply_delay_seconds: 0,
     filter_keywords: { include: [], exclude: [] },
     business_context: '',
+    active_persona_id: null,
   });
+  const [personas, setPersonas] = useState<AIPersona[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [newIncludeKeyword, setNewIncludeKeyword] = useState('');
   const [newExcludeKeyword, setNewExcludeKeyword] = useState('');
   const { user } = useAuth();
-  
+
 
   useEffect(() => {
-    fetchConfig();
+    fetchData();
   }, [user]);
 
-  const fetchConfig = async () => {
+  const fetchData = async () => {
     if (!user) return;
 
     setLoading(true);
+    try {
+      const [configData, personasData] = await Promise.all([
+        fetchConfig(),
+        aiPersonasService.getPersonas()
+      ]);
+
+      if (configData) {
+        setConfig(configData);
+      }
+      setPersonas(personasData);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      toast({
+        title: 'Error loading configuration',
+        status: 'error',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchConfig = async () => {
     const { data, error } = await supabase
       .from('ai_configurations')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', user!.id)
       .is('social_account_id', null)
       .maybeSingle();
 
-    if (data) {
-      setConfig(data);
-    }
-    setLoading(false);
+    if (error) throw error;
+    return data;
   };
 
   const handleSave = async () => {
@@ -102,15 +126,15 @@ export const AIConfigView = () => {
         title: 'Error saving configuration',
         description: error.message,
         status: 'error',
-        
+
       });
     } else {
       toast({
         title: 'Configuration saved',
         status: 'success',
-        
+
       });
-      fetchConfig();
+      fetchData();
     }
     setSaving(false);
   };
@@ -165,6 +189,8 @@ export const AIConfigView = () => {
     return <LoadingState message="Loading configuration..." variant="skeleton" />;
   }
 
+  const selectedPersona = personas.find(p => p.id === config.active_persona_id);
+
   return (
     <Box>
       <Flex mb={8} justify="space-between" align="center">
@@ -180,6 +206,45 @@ export const AIConfigView = () => {
       </Flex>
 
       <VStack spacing={6} align="stretch">
+        <Card>
+          <CardBody>
+            <VStack spacing={6} align="stretch">
+              <Heading size="md" display="flex" alignItems="center" gap={2}>
+                <Icon as={UserCircle2} />
+                AI Persona
+              </Heading>
+              <Text color="gray.600">
+                Select the personality your AI will adopt when chatting with fans.
+              </Text>
+
+              <FormControl>
+                <FormLabel>Active Persona</FormLabel>
+                <Select
+                  value={config.active_persona_id || ''}
+                  onChange={(e) =>
+                    setConfig({ ...config, active_persona_id: e.target.value || null })
+                  }
+                  placeholder="Select a persona..."
+                >
+                  {personas.map((persona) => (
+                    <option key={persona.id} value={persona.id}>
+                      {persona.name}
+                    </option>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {selectedPersona && (
+                <Box p={4} bg="gray.50" borderRadius="md" borderLeft="4px solid" borderColor="blue.400">
+                  <Badge colorScheme="blue" mb={2}>{selectedPersona.name}</Badge>
+                  <Text fontSize="sm" mb={2}><strong>Description:</strong> {selectedPersona.description}</Text>
+                  <Text fontSize="sm" color="gray.600" fontStyle="italic">"{selectedPersona.system_prompt}"</Text>
+                </Box>
+              )}
+            </VStack>
+          </CardBody>
+        </Card>
+
         <Card>
           <CardBody>
             <VStack spacing={6} align="stretch">
@@ -209,24 +274,6 @@ export const AIConfigView = () => {
                   />
                 </FormControl>
               </SimpleGrid>
-
-              <FormControl>
-                <FormLabel>Response Tone</FormLabel>
-                <Select
-                  value={config.response_tone}
-                  onChange={(e) =>
-                    setConfig({
-                      ...config,
-                      response_tone: e.target.value as any,
-                    })
-                  }
-                >
-                  <option value="professional">Professional</option>
-                  <option value="friendly">Friendly</option>
-                  <option value="casual">Casual</option>
-                  <option value="custom">Custom</option>
-                </Select>
-              </FormControl>
 
               <FormControl>
                 <FormLabel>Reply Delay (seconds)</FormLabel>
