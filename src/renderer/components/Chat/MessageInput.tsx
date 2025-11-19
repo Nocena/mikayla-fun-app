@@ -1,16 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AIControls } from './AIControls';
-import { AIMode, Message } from "../../types/chat";
+import { AIMode, Message, Fan } from "../../types/chat";
 import { SendIcon } from "./icons/SendIcon";
+import { AgentOrchestratorOutput } from '../../types/agent';
 
 interface MessageInputProps {
   onSendMessage: (content: string, sender: 'model' | 'ai') => void;
   conversationHistory: Message[];
   sendingMessage?: boolean;
   socialAccountId?: string;
+  conversationId?: string; // New prop
+  fan: Fan;
+  onAgentAnalysisStart: () => void;
+  onAgentAnalysisComplete: (insights: AgentOrchestratorOutput) => void;
 }
 
-export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, conversationHistory, sendingMessage = false, socialAccountId }) => {
+export const MessageInput: React.FC<MessageInputProps> = ({
+  onSendMessage,
+  conversationHistory,
+  sendingMessage = false,
+  socialAccountId,
+  conversationId, // Destructure
+  fan,
+  onAgentAnalysisStart,
+  onAgentAnalysisComplete
+}) => {
   const [text, setText] = useState('');
   const [aiMode, setAiMode] = useState<AIMode>('suggest');
   const prevSendingRef = useRef(false);
@@ -46,6 +60,10 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, conve
         onSuggestionSelect={setText}
         conversationHistory={conversationHistory}
         socialAccountId={socialAccountId}
+        conversationId={conversationId} // Pass to AIControls
+        fan={fan}
+        onAgentAnalysisStart={onAgentAnalysisStart}
+        onAgentAnalysisComplete={onAgentAnalysisComplete}
       />
       <div className="relative mt-2">
         <textarea

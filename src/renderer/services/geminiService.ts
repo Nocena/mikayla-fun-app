@@ -48,21 +48,21 @@ export const generateReplySuggestions = async (
 
     if (personality.name.toLowerCase().includes('slutty')) {
       return [
-        "Mmm, tell me more... I'm listening.",
-        "You have no idea what you do to me... 😉",
-        "I've been waiting for you to message me all day.",
+        "mmm, tell me more... im listening",
+        "u have no idea what u do to me bby... 😉",
+        "ive been waiting for u to message me all day",
       ];
     } else if (personality.name.toLowerCase().includes('girlfriend')) {
       return [
-        "Aww, that's so sweet! How was your day?",
-        "I was just thinking about you! ❤️",
-        "You always know how to make me smile.",
+        "aww, thats so sweet! hbu?",
+        "i was just thinking about u bby! ❤️",
+        "u always know how to make me smile",
       ];
     } else {
       return [
-        "What else is on your mind?",
-        "That's interesting, tell me more.",
-        "You're a lot of fun to talk to 😊",
+        "what else is on ur mind?",
+        "thats interesting, tell me more",
+        "ur a lot of fun to talk to 😊",
       ];
     }
   }
@@ -106,7 +106,14 @@ export const generateReplySuggestions = async (
       **Goal:**
       Generate 3 unique, engaging, and short replies that the model can send to the fan. 
       The replies should aim to encourage further conversation, build connection, and eventually lead to sales (tips/bundles).
-      Do NOT be overly robotic. Be natural and authentic to the persona.
+      
+      **CRITICAL BELIEVABILITY RULES:**
+      1. **Grammar**: Mostly lowercase, but not strictly. Don't be perfectly grammatically correct.
+      2. **Apostrophes**: NEVER use them (e.g., "dont", "im", "thats").
+      3. **Slang**: Use shortcuts like "lol", "rn", "hbu". IMPORTANT: Use "bby" or "babyyyyy" instead of "baby".
+      4. **Typos**: Introduce a realistic "misslick" or typo in roughly 10% of messages (e.g., "teh" instead of "the", or missing a letter).
+      5. **Emojis**: Use sparingly (max 2 per message), only if fitting for the persona.
+      6. **Style**: Sound like a real girl chatting, not an AI.
 
       ${similarConversationsText}
 
@@ -115,7 +122,7 @@ export const generateReplySuggestions = async (
       ${historyText}
       ---
 
-      Return ONLY a JSON array of 3 string suggestions. Example: ["Reply 1", "Reply 2", "Reply 3"]
+      Return ONLY a JSON array of 3 string suggestions. Example: ["reply 1", "reply 2", "reply 3"]
     `;
 
     // 3. **Call the Gemini API**
