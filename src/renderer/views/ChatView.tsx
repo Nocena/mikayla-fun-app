@@ -130,14 +130,6 @@ export const ChatView = () => {
 
     setSendingMessage(true);
 
-    // Optimistically add the message to the UI
-    const tempMessage: Message = {
-      id: `temp-${Date.now()}`,
-      sender: 'model',
-      content: `<p>${content}</p>`,
-      timestamp: new Date().toISOString(),
-    };
-
     try {
       // Send message via API
       const success = await sendMessage(

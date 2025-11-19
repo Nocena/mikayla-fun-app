@@ -13,7 +13,7 @@ export const LoadingState = ({
 }: LoadingStateProps) => {
   if (variant === 'minimal') {
     return (
-      <Flex justify="center" align="center" minH="200px">
+      <Flex justify="center" align="center" minH="100vh">
         <VStack spacing={4}>
           <Spinner size="lg" color="accent.primary" thickness="3px" speed="0.8s" />
           {showMessage && (
@@ -46,7 +46,7 @@ export const LoadingState = ({
   }
 
   return (
-    <Flex justify="center" align="center" minH="400px">
+    <Flex justify="center" align="center" minH="100vh">
       <VStack spacing={4}>
         <Spinner 
           size="xl" 
