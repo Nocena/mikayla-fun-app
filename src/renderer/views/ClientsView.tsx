@@ -658,7 +658,13 @@ export const ClientsView = () => {
                   <Button
                     size="xs"
                     variant="ghost"
-                    onClick={() => setSelectedAccount(null)}
+                    onClick={() => {
+                      setSelectedAccount(null);
+                      setSelectedAccountId(null);
+                      if (linking) {
+                        setPendingAccount(null);
+                      }
+                    }}
                   >
                     Close
                   </Button>

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 type ViewId = 'inbox' | 'chat' | 'accounts' | 'clients' | 'ai-config' | 'analytics' | 'settings';
 
@@ -25,6 +25,12 @@ export const NavigationProvider = ({ children }: { children: ReactNode }) => {
   const [activeView, setActiveView] = useState<ViewId>('accounts');
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [pendingAccount, setPendingAccount] = useState<{ id: string; platform: string; platformName?: string; platform_username?: string } | null>(null);
+
+  useEffect(() => {
+    if (activeView !== 'clients' && pendingAccount) {
+      setPendingAccount(null);
+    }
+  }, [activeView, pendingAccount]);
 
   return (
     <NavigationContext.Provider
