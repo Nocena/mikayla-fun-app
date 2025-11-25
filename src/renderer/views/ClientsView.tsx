@@ -51,7 +51,6 @@ export const ClientsView = () => {
   const [browserStatus, setBrowserStatus] = useState<BrowserStatus>('loading');
   const [browserError, setBrowserError] = useState<string | null>(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const { user } = useAuth();
   const { selectedAccountId, setSelectedAccountId, pendingAccount, setPendingAccount } = useNavigation();
   const { statusById } = useAccountStatus();
   const collapseButtonBg = useColorModeValue('white', 'gray.900');

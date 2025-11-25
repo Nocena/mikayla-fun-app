@@ -3,6 +3,8 @@ import { AIControls } from './AIControls';
 import { AIMode, Message, Fan } from "../../types/chat";
 import { SendIcon } from "./icons/SendIcon";
 import { AgentOrchestratorOutput } from '../../types/agent';
+import { MessageToolbar } from './MessageToolbar';
+import { PriceLockModal } from './PriceLockModal';
 
 interface MessageInputProps {
   onSendMessage: (content: string, sender: 'model' | 'ai') => void;
@@ -27,6 +29,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 }) => {
   const [text, setText] = useState('');
   const [aiMode, setAiMode] = useState<AIMode>('suggest');
+  const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
+  const [priceLockValue, setPriceLockValue] = useState<number | null>(null);
   const prevSendingRef = useRef(false);
 
   // Clear text when sending completes (sendingMessage changes from true to false)
@@ -42,6 +46,12 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     if (text.trim() && !sendingMessage) {
       onSendMessage(text, 'model'); // Assume manual sends are from the 'model'
       // Don't clear text here - keep it in the box while sending
+    }
+  };
+
+  const handleToolbarAction = (actionKey: string) => {
+    if (actionKey === 'ppv') {
+      setIsPriceModalOpen(true);
     }
   };
 
@@ -90,6 +100,17 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           )}
         </button>
       </div>
+      <MessageToolbar characterCount={text.length} onActionClick={handleToolbarAction} />
+
+      <PriceLockModal
+        isOpen={isPriceModalOpen}
+        initialValue={priceLockValue}
+        onClose={() => setIsPriceModalOpen(false)}
+        onSave={(price) => {
+          setPriceLockValue(price);
+          setIsPriceModalOpen(false);
+        }}
+      />
     </div>
   );
 };
