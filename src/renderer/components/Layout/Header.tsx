@@ -21,17 +21,8 @@ import {
 import { Moon, Sun, ChevronDown, RefreshCw, Settings } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../contexts/AuthContext';
+import { useSocialAccounts } from '../../contexts/SocialAccountsContext';
 import { getPlatformLogo } from '../../utils/platform';
-
-interface SocialAccount {
-  id: string;
-  platform: string;
-  platform_username: string;
-  profile_image_url: string | null;
-  is_active: boolean;
-  last_synced_at: string | null;
-}
 
 interface HeaderProps {
   onViewChange?: (view: string) => void;
@@ -39,32 +30,17 @@ interface HeaderProps {
 
 export const Header = ({ onViewChange }: HeaderProps) => {
   const { colorMode, toggleColorMode } = useColorMode();
-  const { user } = useAuth();
-  const [socialAccounts, setSocialAccounts] = useState<SocialAccount[]>([]);
+  const { accounts: socialAccounts, refresh } = useSocialAccounts();
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user) {
-      fetchSocialAccounts();
+    if (socialAccounts.length > 0 && selectedAccounts.length === 0) {
+      setSelectedAccounts([socialAccounts[0].id]);
+      setLastSyncTime(socialAccounts[0].last_synced_at);
     }
-  }, [user]);
-
-  const fetchSocialAccounts = async () => {
-    const { data, error } = await supabase
-      .from('social_accounts')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (!error && data) {
-      setSocialAccounts(data);
-      if (data.length > 0 && selectedAccounts.length === 0) {
-        setSelectedAccounts([data[0].id]);
-        setLastSyncTime(data[0].last_synced_at);
-      }
-    }
-  };
+  }, [socialAccounts]);
 
   const handleAccountToggle = (accountId: string) => {
     setSelectedAccounts((prev) => {
@@ -93,7 +69,7 @@ export const Header = ({ onViewChange }: HeaderProps) => {
     }
 
     setLastSyncTime(now);
-    await fetchSocialAccounts();
+    await refresh();
     setIsSyncing(false);
   };
 

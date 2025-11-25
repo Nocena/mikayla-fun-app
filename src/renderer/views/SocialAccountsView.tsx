@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import {
   Box,
   Heading,
@@ -24,9 +23,8 @@ import {
   Image,
 } from '@chakra-ui/react';
 import { toast } from '../lib/toast';
-import { Plus, Users, MoreHorizontal, Settings, MessageSquare, AlertCircle } from 'lucide-react';
-import { supabase, SocialAccount } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
+import { Plus, Users, MoreHorizontal, Settings, MessageSquare } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import { AddAccountModal } from '../components/SocialAccounts/AddAccountModal';
 import { getPlatformColor, getPlatformLogo } from '../utils/platform';
 import { useAccountStatus } from '../contexts/AccountStatusContext';
@@ -35,75 +33,29 @@ import { useSocialAccounts } from '../contexts/SocialAccountsContext';
 import { StyledButton } from '../components/common/StyledButton';
 
 export const SocialAccountsView = () => {
-  const [accounts, setAccounts] = useState<SocialAccount[]>([]);
-  const [loading, setLoading] = useState(true);
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const { user } = useAuth();
   const { statusById } = useAccountStatus();
-  const { refresh: refreshContext } = useSocialAccounts();
-
-  useEffect(() => {
-    fetchAccounts();
-  }, [user]);
-
-  const fetchAccounts = async (showLoading = true) => {
-    if (!user) return;
-
-    if (showLoading) {
-      setLoading(true);
-    }
-    const { data, error } = await supabase
-      .from('social_accounts')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      toast({
-        title: 'Error loading accounts',
-        description: error.message,
-        status: 'error',
-        
-      });
-    } else {
-      setAccounts(data || []);
-    }
-    if (showLoading) {
-      setLoading(false);
-    }
-  };
+  const { accounts, loading, refresh } = useSocialAccounts();
 
   const handleDelete = async (id: string) => {
-    // Optimistically remove the account from UI
-    const accountToDelete = accounts.find(acc => acc.id === id);
-    setAccounts(prev => prev.filter(acc => acc.id !== id));
-
     const { error } = await supabase
       .from('social_accounts')
       .delete()
       .eq('id', id);
 
     if (error) {
-      // Restore the account if deletion failed
-      if (accountToDelete) {
-        setAccounts(prev => [...prev, accountToDelete]);
-      }
       toast({
         title: 'Error removing account',
         description: error.message,
         status: 'error',
-        
       });
     } else {
       toast({
         title: 'Account removed',
         status: 'success',
-        
       });
-      // Refresh silently to ensure consistency, but without showing loading
-      fetchAccounts(false);
-      // Also refresh the context so ClientsView and other components get updated
-      refreshContext();
+      // Refresh the context to update all components
+      await refresh();
     }
   };
 
@@ -118,17 +70,14 @@ export const SocialAccountsView = () => {
         title: 'Error updating account',
         description: error.message,
         status: 'error',
-        
       });
     } else {
       toast({
         title: isActive ? 'Account activated' : 'Account deactivated',
         status: 'success',
-        
       });
-      fetchAccounts();
-      // Refresh the context so ClientsView and other components get updated
-      refreshContext();
+      // Refresh the context to update all components
+      await refresh();
     }
   };
 
@@ -141,9 +90,8 @@ export const SocialAccountsView = () => {
       .from('social_accounts')
       .update({ last_synced_at: new Date().toISOString() })
       .eq('id', id);
-    fetchAccounts();
-    // Refresh the context so ClientsView and other components get updated
-    refreshContext();
+    // Refresh the context to update all components
+    await refresh();
   };
 
   if (loading) {
@@ -324,7 +272,7 @@ export const SocialAccountsView = () => {
       <AddAccountModal
         isOpen={isOpen}
         onClose={onClose}
-        onAccountAdded={fetchAccounts}
+        onAccountAdded={refresh}
       />
     </Box>
   );

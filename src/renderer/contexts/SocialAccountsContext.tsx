@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { supabase, SocialAccount } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { toast } from '../lib/toast';
@@ -24,7 +24,7 @@ export const SocialAccountsProvider = ({ children }: { children: ReactNode }) =>
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     if (!user) {
       setAccounts([]);
       setLoading(false);
@@ -48,11 +48,11 @@ export const SocialAccountsProvider = ({ children }: { children: ReactNode }) =>
       setAccounts(data || []);
     }
     setLoading(false);
-  };
+  }, [user?.id]);
 
   useEffect(() => {
     refresh();
-  }, [user?.id]);
+  }, [refresh]);
 
   return (
     <SocialAccountsContext.Provider value={{ accounts, loading, refresh }}>
