@@ -5,6 +5,7 @@ import { SendIcon } from "./icons/SendIcon";
 import { AgentOrchestratorOutput } from '../../types/agent';
 import { MessageToolbar } from './MessageToolbar';
 import { PriceLockModal } from './PriceLockModal';
+import { PriceLockBar } from './PriceLockBar';
 
 interface MessageInputProps {
   onSendMessage: (content: string, sender: 'model' | 'ai') => void;
@@ -75,6 +76,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         onAgentAnalysisStart={onAgentAnalysisStart}
         onAgentAnalysisComplete={onAgentAnalysisComplete}
       />
+      {priceLockValue !== null && priceLockValue > 0 && (
+        <PriceLockBar price={priceLockValue} onRemove={() => setPriceLockValue(null)} />
+      )}
       <div className="relative mt-2">
         <textarea
           value={text}

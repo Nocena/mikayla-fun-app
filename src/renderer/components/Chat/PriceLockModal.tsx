@@ -29,6 +29,10 @@ const parseInputValue = (input: string): { price: number | null; error?: string 
     return { price: numeric, error: 'Minimum $3 USD or free' };
   }
 
+  if (numeric > 100) {
+    return { price: numeric, error: 'Maximum $100 USD' };
+  }
+
   return { price: numeric };
 };
 
@@ -88,7 +92,7 @@ export const PriceLockModal = ({
             <input
               value={inputValue}
               onChange={(e) => handleChange(e.target.value)}
-              placeholder="0 for Free"
+              placeholder="Free"
               type="number"
               min={0}
               step="0.01"
@@ -102,7 +106,7 @@ export const PriceLockModal = ({
               hasError ? 'text-red-400' : 'text-text-secondary'
             }`}
           >
-            Minimum $3 USD or free
+            {error || 'Minimum $3 USD or free (max $100 USD)'}
           </p>
         </div>
         <div className="mt-6 flex items-center justify-end gap-6 text-sm font-semibold uppercase tracking-wide">
