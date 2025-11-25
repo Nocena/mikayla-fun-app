@@ -182,7 +182,7 @@ export const ChatView = () => {
 
 
   return (
-      <div className="flex h-[calc(100vh-8.5rem)] bg-panel border border-border-color rounded-2xl overflow-hidden">
+      <div className="flex h-full bg-panel border border-border-color rounded-2xl overflow-hidden">
         <ConversationList
             conversations={filteredConversations}
             selectedConversationId={selectedConversation?.id}
