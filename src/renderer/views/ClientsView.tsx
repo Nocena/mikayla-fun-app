@@ -31,16 +31,15 @@ import {
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
-import { supabase, SocialAccount } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
+import { SocialAccount } from '../lib/supabase';
 import { useNavigation } from '../contexts/NavigationContext';
 import { AddAccountModal } from '../components/SocialAccounts/AddAccountModal';
 import { BrowserIframe, BrowserIframeHandle, BrowserStatus } from '../components/BrowserContent/BrowserIframe';
-import { toast } from '../lib/toast';
 import { getPlatformColor, getPlatformUrl, getPlatformMeta, getPlatformLogo } from '../utils/platform';
 import { GradientButton } from '../components/common/GradientButton';
 import { useAccountStatus } from '../contexts/AccountStatusContext';
 import { useSocialAccounts } from '../contexts/SocialAccountsContext';
+import { usePlatformAuth } from '../hooks/usePlatformAuth';
 
 export const ClientsView = () => {
   const { accounts, loading: accountsLoading, refresh: refreshAccounts } = useSocialAccounts();
@@ -135,98 +134,18 @@ export const ClientsView = () => {
     : (linking ? `persist:${pendingAccount!.platform}-${pendingAccount!.id}` : 'persist:default');
   const linkingUrl = linking && selectedPlatformMeta ? selectedPlatformMeta.loginUrl : '';
 
-  // Poll OnlyFans auth during linking
-  useEffect(() => {
-    if (!linking || !pendingAccount || pendingAccount.platform !== 'onlyfans') return;
-    let timer: any;
-    const part = `persist:${pendingAccount.platform}-${pendingAccount.id}`;
-    const tick = async () => {
-      console.log("I am in ClientsView Ticking")
-      try {
-        // Read latest captured request headers for this partition from main (may include cookies, x-bc, etc.)
-        const hdrRes = await window.electronAPI.headers.get(part);
-        const rawHeaders = (hdrRes.success && hdrRes.data) ? hdrRes.data : {};
-        // Filter out forbidden headers for browser fetch (cookie, host, origin, referer, connection, content-length, sec-*, proxy-*)
-        const allowedHeaders: Record<string, string> = {};
-        Object.entries(rawHeaders).forEach(([k, v]) => {
-          const key = String(k);
-          if (!/^(cookie|host|origin|referer|connection|content-length|sec-|proxy-)/i.test(key)) {
-            allowedHeaders[key] = String(v as any);
-          }
-        });
-
-        // Execute fetch from inside the webview context so cookies/session are used naturally, and include allowed captured headers
-        const meRes = await browserRef.current?.executeScript(`
-          (async () => {
-            try {
-              const headers = ${JSON.stringify(allowedHeaders)};
-              const res = await fetch('https://onlyfans.com/api2/v2/users/me', {
-                method: 'GET',
-                credentials: 'include',
-                headers
-              });
-              const text = await res.text();
-              let data = null;
-              try { data = JSON.parse(text); } catch { data = { raw: text }; }
-              return { ok: res.ok, status: res.status, data };
-            } catch (e) {
-              return { ok: false, error: String(e) };
-            }
-          })();
-        `);
-        if (meRes && meRes.ok && meRes.data && (meRes.data.isAuth === true || meRes.data.is_auth === true)) {
-          const ofId = meRes.data.id;
-          const username = meRes.data.name || meRes.data.username || '';
-          const avatar = meRes.data.avatar || null;
-          console.log("username", username)
-
-          if (user) {
-            if (pendingAccount) {
-              // Create new account row now that we have platform_user_id
-              const { data, error } = await supabase
-                .from('social_accounts')
-                .insert({
-                  id: pendingAccount.id,
-                  user_id: user.id,
-                  platform: 'onlyfans',
-                  platform_user_id: String(ofId),
-                  platform_username: username,
-                  profile_image_url: avatar,
-                  is_active: true,
-                })
-                .select('id')
-                .single();
-              if (!error && data?.id) {
-                setPendingAccount(null);
-                setSelectedAccountId(data.id);
-                toast({ title: 'OnlyFans linked', status: 'success' });
-                refreshAccounts();
-              }
-            } else if (selectedAccount) {
-              const { error } = await supabase
-                .from('social_accounts')
-                .update({
-                  platform_user_id: String(ofId),
-                  platform_username: username,
-                  profile_image_url: avatar,
-                  is_active: true,
-                })
-                .eq('id', selectedAccount.id);
-              if (!error) {
-                setSelectedAccountId(selectedAccount.id);
-                toast({ title: 'OnlyFans linked', status: 'success' });
-                refreshAccounts();
-              }
-            }
-          }
-        }
-      } catch {}
-    };
-    timer = setInterval(tick, 2000);
-    return () => {
-      if (timer) clearInterval(timer);
-    };
-  }, [linking, pendingAccount?.id, pendingAccount?.platform, selectedAccount?.id, selectedAccount?.platform, selectedPartitionName, user]);
+  // Use platform authentication hook for polling during linking
+  usePlatformAuth({
+    linking,
+    pendingAccount,
+    selectedAccount,
+    browserRef,
+    partitionName: selectedPartitionName,
+    onAccountLinked: (accountId) => {
+      setPendingAccount(null);
+      setSelectedAccountId(accountId);
+    },
+  });
 
   const statusText = (() => {
     if (browserStatus === 'error') return 'Unable to load content';
