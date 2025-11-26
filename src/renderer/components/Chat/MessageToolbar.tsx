@@ -23,6 +23,7 @@ type ToolbarAction = {
 export interface MessageToolbarProps {
   characterCount: number;
   onActionClick?: (actionKey: string) => void;
+  activeAction?: string;
 }
 
 const MESSAGE_TOOLBAR_ACTIONS: ToolbarAction[] = [
@@ -90,35 +91,39 @@ const MESSAGE_TOOLBAR_ACTIONS: ToolbarAction[] = [
     label: 'Emoji',
     Icon: Smile,
     tooltip: 'Open emoji picker',
-    disabled: true,
   },
 ];
 
-export const MessageToolbar = ({ characterCount, onActionClick }: MessageToolbarProps) => {
+export const MessageToolbar = ({ characterCount, onActionClick, activeAction }: MessageToolbarProps) => {
   return (
     <div className="mt-3 flex flex-col gap-2">
       <div className="flex flex-wrap gap-2">
-        {MESSAGE_TOOLBAR_ACTIONS.map((action) => (
-          <button
-            key={action.key}
-            type="button"
-            className={`flex items-center gap-1 rounded-lg border border-border-color bg-panel px-3 py-1 text-xs font-medium text-text-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 ${
-              action.disabled
-                ? 'cursor-not-allowed opacity-40'
-                : 'hover:border-primary hover:text-primary'
-            }`}
-            title={action.tooltip}
-            disabled={action.disabled}
-            onClick={() => {
-              if (!action.disabled && onActionClick) {
-                onActionClick(action.key);
-              }
-            }}
-          >
-            <action.Icon className="h-4 w-4" />
-            <span className="hidden sm:inline">{action.label}</span>
-          </button>
-        ))}
+        {MESSAGE_TOOLBAR_ACTIONS.map((action) => {
+          const isActive = activeAction === action.key;
+          return (
+            <button
+              key={action.key}
+              type="button"
+              className={`flex items-center gap-1 rounded-lg border px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 ${
+                action.disabled
+                  ? 'cursor-not-allowed opacity-40 border-border-color bg-panel text-text-secondary'
+                  : isActive
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border-color bg-panel text-text-secondary hover:border-primary hover:text-primary'
+              }`}
+              title={action.tooltip}
+              disabled={action.disabled}
+              onClick={() => {
+                if (!action.disabled && onActionClick) {
+                  onActionClick(action.key);
+                }
+              }}
+            >
+              <action.Icon className="h-4 w-4" />
+              <span className="hidden sm:inline">{action.label}</span>
+            </button>
+          );
+        })}
       </div>
       <div className="text-right text-xs text-text-secondary">{characterCount} characters</div>
     </div>

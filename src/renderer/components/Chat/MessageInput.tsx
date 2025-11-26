@@ -8,6 +8,7 @@ import { PriceLockModal } from './PriceLockModal';
 import { MediaVaultModal, MediaItem } from './MediaVaultModal';
 import { PriceLockBar } from './PriceLockBar';
 import { MediaAttachmentBar, AttachedFile, isSupportedFile } from './MediaAttachmentBar';
+import { EmojiPicker } from './EmojiPicker';
 import { useSocialAccounts } from '../../contexts/SocialAccountsContext';
 import type { SocialAccount } from '../../lib/supabase';
 
@@ -39,7 +40,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const [isMediaVaultOpen, setIsMediaVaultOpen] = useState(false);
   const [, setAttachedMedia] = useState<MediaItem[]>([]);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const prevSendingRef = useRef(false);
   const { accounts } = useSocialAccounts();
 
@@ -87,6 +90,27 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     }
     if (actionKey === 'attach') {
       fileInputRef.current?.click();
+    }
+    if (actionKey === 'emoji') {
+      setIsEmojiPickerOpen((prev) => !prev);
+    }
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const newText = text.substring(0, start) + emoji + text.substring(end);
+      setText(newText);
+      
+      // Set cursor position after the inserted emoji
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + emoji.length, start + emoji.length);
+      }, 0);
+    } else {
+      setText((prev) => prev + emoji);
     }
   };
 
@@ -169,6 +193,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       />
       <div className="relative mt-2">
         <textarea
+          ref={textareaRef}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -192,7 +217,17 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           )}
         </button>
       </div>
-      <MessageToolbar characterCount={text.length} onActionClick={handleToolbarAction} />
+      {isEmojiPickerOpen && (
+        <EmojiPicker
+          onEmojiSelect={handleEmojiSelect}
+          onClose={() => setIsEmojiPickerOpen(false)}
+        />
+      )}
+      <MessageToolbar
+        characterCount={text.length}
+        onActionClick={handleToolbarAction}
+        activeAction={isEmojiPickerOpen ? 'emoji' : undefined}
+      />
 
       <PriceLockModal
         isOpen={isPriceModalOpen}
