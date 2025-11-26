@@ -7,6 +7,7 @@ import { MessageToolbar } from './MessageToolbar';
 import { PriceLockModal } from './PriceLockModal';
 import { MediaVaultModal, MediaItem } from './MediaVaultModal';
 import { PriceLockBar } from './PriceLockBar';
+import { MediaAttachmentBar, AttachedFile, isSupportedFile } from './MediaAttachmentBar';
 import { useSocialAccounts } from '../../contexts/SocialAccountsContext';
 import type { SocialAccount } from '../../lib/supabase';
 
@@ -37,6 +38,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const [priceLockValue, setPriceLockValue] = useState<number | null>(null);
   const [isMediaVaultOpen, setIsMediaVaultOpen] = useState(false);
   const [, setAttachedMedia] = useState<MediaItem[]>([]);
+  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const prevSendingRef = useRef(false);
   const { accounts } = useSocialAccounts();
 
@@ -82,7 +85,51 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     if (actionKey === 'media') {
       setIsMediaVaultOpen(true);
     }
+    if (actionKey === 'attach') {
+      fileInputRef.current?.click();
+    }
   };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const supportedFiles = files.filter(isSupportedFile);
+
+    const newAttachments: AttachedFile[] = supportedFiles.map((file) => {
+      const id = `${Date.now()}-${Math.random()}`;
+      const previewUrl = URL.createObjectURL(file);
+      return { id, file, previewUrl };
+    });
+
+    setAttachedFiles((prev) => [...prev, ...newAttachments]);
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveFile = (id: string) => {
+    setAttachedFiles((prev) => {
+      const fileToRemove = prev.find((f) => f.id === id);
+      if (fileToRemove) {
+        URL.revokeObjectURL(fileToRemove.previewUrl);
+      }
+      return prev.filter((f) => f.id !== id);
+    });
+  };
+
+  const handleAddMoreFiles = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Cleanup object URLs on unmount
+  useEffect(() => {
+    return () => {
+      attachedFiles.forEach((file) => {
+        URL.revokeObjectURL(file.previewUrl);
+      });
+    };
+  }, [attachedFiles]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey && !sendingMessage) {
@@ -107,6 +154,19 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       {priceLockValue !== null && priceLockValue > 0 && (
         <PriceLockBar price={priceLockValue} onRemove={() => setPriceLockValue(null)} />
       )}
+      <MediaAttachmentBar
+        files={attachedFiles}
+        onRemove={handleRemoveFile}
+        onAdd={handleAddMoreFiles}
+      />
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept=".jpg,.jpeg,.gif,.png,.heic,.mp4,.mov,.moov,.m4v,.mpg,.mpeg,.wmv,.avi,.webm,.mkv,.mp3,.wav,.ogg"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
       <div className="relative mt-2">
         <textarea
           value={text}

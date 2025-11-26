@@ -9,11 +9,22 @@ export interface Fan {
     tags: string[];
 }
 
+export interface MessageMedia {
+    id: string;
+    type: 'photo' | 'gif' | 'video' | 'audio';
+    thumbnailUrl: string;
+    fullUrl?: string;
+}
+
 export interface Message {
     id: string;
     sender: 'fan' | 'model' | 'ai';
     content: string;
     timestamp: string;
+    media?: MessageMedia[];
+    price?: number;
+    canPurchase?: boolean;
+    lockedText?: boolean;
 }
 
 export interface Conversation {

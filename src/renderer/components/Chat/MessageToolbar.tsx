@@ -9,6 +9,7 @@ import {
   DollarSign,
   FileText,
   Smile,
+  Paperclip,
 } from 'lucide-react';
 
 type ToolbarAction = {
@@ -25,6 +26,12 @@ export interface MessageToolbarProps {
 }
 
 const MESSAGE_TOOLBAR_ACTIONS: ToolbarAction[] = [
+  {
+    key: 'attach',
+    label: 'Attach',
+    Icon: Paperclip,
+    tooltip: 'Attach files from computer',
+  },
   {
     key: 'media',
     label: 'Media',
