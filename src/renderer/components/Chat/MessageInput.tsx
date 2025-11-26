@@ -5,6 +5,7 @@ import { SendIcon } from "./icons/SendIcon";
 import { AgentOrchestratorOutput } from '../../types/agent';
 import { MessageToolbar } from './MessageToolbar';
 import { PriceLockModal } from './PriceLockModal';
+import { MediaVaultModal, MediaItem } from './MediaVaultModal';
 import { PriceLockBar } from './PriceLockBar';
 
 interface MessageInputProps {
@@ -32,6 +33,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const [aiMode, setAiMode] = useState<AIMode>('suggest');
   const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
   const [priceLockValue, setPriceLockValue] = useState<number | null>(null);
+  const [isMediaVaultOpen, setIsMediaVaultOpen] = useState(false);
+  const [, setAttachedMedia] = useState<MediaItem[]>([]);
   const prevSendingRef = useRef(false);
 
   // Clear text when sending completes (sendingMessage changes from true to false)
@@ -53,6 +56,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const handleToolbarAction = (actionKey: string) => {
     if (actionKey === 'ppv') {
       setIsPriceModalOpen(true);
+    }
+    if (actionKey === 'media') {
+      setIsMediaVaultOpen(true);
     }
   };
 
@@ -113,6 +119,14 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         onSave={(price) => {
           setPriceLockValue(price);
           setIsPriceModalOpen(false);
+        }}
+      />
+      <MediaVaultModal
+        isOpen={isMediaVaultOpen}
+        onClose={() => setIsMediaVaultOpen(false)}
+        onAdd={(items) => {
+          setAttachedMedia(items);
+          setIsMediaVaultOpen(false);
         }}
       />
     </div>
