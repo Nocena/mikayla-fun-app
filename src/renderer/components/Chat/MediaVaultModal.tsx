@@ -1,27 +1,36 @@
-import { useMemo, useState } from 'react';
-import { Check, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Check, Loader2, X } from 'lucide-react';
+import { useWebviews } from '../../contexts/WebviewContext';
+import { filterAllowedHeaders } from '../../services/onlyfansChatsService';
+import {
+  getVaultListsScript,
+  getVaultMediaScript,
+  OnlyFansVaultListsResponse,
+  OnlyFansVaultMediaResponse,
+} from '../../services/onlyfansVaultService';
 
 export type MediaType = 'photo' | 'gif' | 'video' | 'audio';
 
 export interface MediaItem {
   id: string;
   type: MediaType;
-  title: string;
-  dateLabel: string;
+  createdAt: string;
   thumbnailUrl: string;
 }
 
-export interface MediaCategory {
+interface MediaCategory {
   id: string;
   name: string;
   count: number;
-  items: MediaItem[];
 }
 
 export interface MediaVaultModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (items: MediaItem[]) => void;
+  accountId?: string;
+  accountPlatform?: string;
+  accountUserId?: string | null;
 }
 
 const FILTER_TABS: Array<{ id: MediaType | 'all'; label: string }> = [
@@ -32,127 +41,264 @@ const FILTER_TABS: Array<{ id: MediaType | 'all'; label: string }> = [
   { id: 'audio', label: 'Audio' },
 ];
 
-const VAULT_DATA: MediaCategory[] = [
-  {
-    id: 'all',
-    name: 'All media',
-    count: 7,
-    items: [
-      {
-        id: 'detective-1',
-        type: 'photo',
-        title: 'Detective portrait',
-        dateLabel: 'Yesterday',
-        thumbnailUrl: 'https://placehold.co/400x400/1e1f2b/fff?text=Detective',
-      },
-      {
-        id: 'monster-1',
-        type: 'photo',
-        title: 'Green monster',
-        dateLabel: 'Yesterday',
-        thumbnailUrl: 'https://placehold.co/400x400/115c2d/fff?text=Monster',
-      },
-      {
-        id: 'detective-2',
-        type: 'photo',
-        title: 'Detective profile',
-        dateLabel: 'Yesterday',
-        thumbnailUrl: 'https://placehold.co/400x400/2c1f3b/fff?text=Detective+II',
-      },
-      {
-        id: 'emoji-pack',
-        type: 'gif',
-        title: 'Emoji pack',
-        dateLabel: 'Yesterday',
-        thumbnailUrl: 'https://placehold.co/400x400/1a4a73/fff?text=Emoji',
-      },
-      {
-        id: 'components',
-        type: 'photo',
-        title: 'Blue components',
-        dateLabel: 'Yesterday',
-        thumbnailUrl: 'https://placehold.co/400x400/0f3f6d/fff?text=Components',
-      },
-      {
-        id: 'drone',
-        type: 'video',
-        title: 'Drone render',
-        dateLabel: 'Yesterday',
-        thumbnailUrl: 'https://placehold.co/400x400/1f1f1f/fff?text=Drone',
-      },
-      {
-        id: 'android',
-        type: 'video',
-        title: 'Android test',
-        dateLabel: 'Yesterday',
-        thumbnailUrl: 'https://placehold.co/400x400/050505/fff?text=Android',
-      },
-    ],
-  },
-  {
-    id: 'stories',
-    name: 'Stories',
-    count: 0,
-    items: [],
-  },
-  {
-    id: 'posts',
-    name: 'Posts',
-    count: 3,
-    items: [],
-  },
-  {
-    id: 'streams',
-    name: 'Streams',
-    count: 0,
-    items: [],
-  },
-  {
-    id: 'uploads',
-    name: 'Uploads',
-    count: 0,
-    items: [],
-  },
-  {
-    id: 'boobs',
-    name: 'boobs',
-    count: 3,
-    items: [],
-  },
-  {
-    id: 'messages',
-    name: 'Messages',
-    count: 4,
-    items: [],
-  },
-];
-
 const MAX_SELECTION = 40;
 
-export const MediaVaultModal = ({ isOpen, onClose, onAdd }: MediaVaultModalProps) => {
-  const [selectedCategoryId, setSelectedCategoryId] = useState(VAULT_DATA[0].id);
+const countMediaTotal = (counts?: {
+  videosCount?: number;
+  photosCount?: number;
+  gifsCount?: number;
+  audiosCount?: number;
+}) =>
+  (counts?.videosCount ?? 0) +
+  (counts?.photosCount ?? 0) +
+  (counts?.gifsCount ?? 0) +
+  (counts?.audiosCount ?? 0);
+
+const normalizeCategories = (data: OnlyFansVaultListsResponse | null): MediaCategory[] => {
+  if (!data) return [];
+  const categories: MediaCategory[] = [];
+
+  categories.push({
+    id: 'all',
+    name: 'All media',
+    count: countMediaTotal(data.all) || 0,
+  });
+
+  (data.list || []).forEach((item) => {
+    categories.push({
+      id: item.id.toString(),
+      name: item.name,
+      count: countMediaTotal(item),
+    });
+  });
+
+  return categories;
+};
+
+const mapMediaItems = (response: OnlyFansVaultMediaResponse | null): MediaItem[] => {
+  if (!response?.list) return [];
+  return response.list
+    .map((media) => ({
+      id: media.id.toString(),
+      type: media.type,
+      createdAt: media.createdAt,
+      thumbnailUrl:
+        media.files?.thumb?.url ||
+        media.files?.preview?.url ||
+        media.files?.squarePreview?.url ||
+        media.files?.full?.url ||
+        '',
+    }))
+    .filter((item) => item.thumbnailUrl);
+};
+
+const formatDateLabel = (isoString: string) => {
+  if (!isoString) return '';
+  const createdDate = new Date(isoString);
+  const now = new Date();
+
+  const sameDay =
+    createdDate.getFullYear() === now.getFullYear() &&
+    createdDate.getMonth() === now.getMonth() &&
+    createdDate.getDate() === now.getDate();
+
+  if (sameDay) {
+    return createdDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  }
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const isYesterday =
+    createdDate.getFullYear() === yesterday.getFullYear() &&
+    createdDate.getMonth() === yesterday.getMonth() &&
+    createdDate.getDate() === yesterday.getDate();
+
+  if (isYesterday) {
+    return 'Yesterday';
+  }
+
+  const datePart = createdDate.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  const timePart = createdDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return `${datePart} • ${timePart}`;
+};
+
+export const MediaVaultModal = ({
+  isOpen,
+  onClose,
+  onAdd,
+  accountId,
+  accountPlatform,
+  accountUserId,
+}: MediaVaultModalProps) => {
+  const { webviewRefs } = useWebviews();
+  const [categories, setCategories] = useState<MediaCategory[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
   const [activeFilter, setActiveFilter] = useState<MediaType | 'all'>('all');
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
+  const [itemsByCategory, setItemsByCategory] = useState<Record<string, MediaItem[]>>({});
+  const [itemLookup, setItemLookup] = useState<Record<string, MediaItem>>({});
+  const [loadingLists, setLoadingLists] = useState(false);
+  const [loadingMedia, setLoadingMedia] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const selectedCategory = useMemo(
-    () => VAULT_DATA.find((category) => category.id === selectedCategoryId) ?? VAULT_DATA[0],
-    [selectedCategoryId],
+  const accountReady = Boolean(accountId && accountPlatform && accountUserId);
+  const partitionName = accountReady ? `persist:${accountPlatform}-${accountId}` : null;
+
+  useEffect(() => {
+    if (!isOpen) {
+      setCategories([]);
+      setItemsByCategory({});
+      setItemLookup({});
+      setSelectedItemIds(new Set());
+      setActiveFilter('all');
+      setError(null);
+      setSelectedCategoryId('all');
+      return;
+    }
+  }, [isOpen]);
+
+  const getAllowedHeaders = useCallback(async () => {
+    if (!partitionName) {
+      throw new Error('Missing OnlyFans session headers');
+    }
+    const hdrRes = await window.electronAPI.headers.get(partitionName);
+    const rawHeaders = hdrRes.success && hdrRes.data ? hdrRes.data : {};
+    const allowedHeaders = filterAllowedHeaders(rawHeaders);
+    if (Object.keys(allowedHeaders).length === 0) {
+      throw new Error('Missing authentication headers for OnlyFans account');
+    }
+    return allowedHeaders;
+  }, [partitionName]);
+
+  const fetchVaultLists = useCallback(async () => {
+    if (!accountReady || !accountId || !accountUserId) {
+      throw new Error('Select an OnlyFans account to load the vault');
+    }
+    const ref = webviewRefs.current[accountId];
+    if (!ref) {
+      throw new Error('OnlyFans browser session is not ready yet');
+    }
+    const headers = await getAllowedHeaders();
+    const script = getVaultListsScript(headers, accountUserId);
+    const response = await ref.executeScript(script);
+    if (!response?.ok || !response.data) {
+      throw new Error('Unable to load vault lists');
+    }
+    return response.data as OnlyFansVaultListsResponse;
+  }, [accountReady, accountId, accountUserId, getAllowedHeaders, webviewRefs]);
+
+  const fetchVaultMedia = useCallback(
+    async (listId: string) => {
+      if (!accountReady || !accountId || !accountUserId) {
+        throw new Error('Select an OnlyFans account to load media');
+      }
+      const ref = webviewRefs.current[accountId];
+      if (!ref) {
+        throw new Error('OnlyFans browser session is not ready yet');
+      }
+      const headers = await getAllowedHeaders();
+      const script = getVaultMediaScript(headers, accountUserId, { list: listId });
+      const response = await ref.executeScript(script);
+      if (!response?.ok || !response.data) {
+        throw new Error('Unable to load media for this category');
+      }
+      return response.data as OnlyFansVaultMediaResponse;
+    },
+    [accountReady, accountId, accountUserId, getAllowedHeaders, webviewRefs],
   );
 
-  const itemsById = useMemo(() => {
-    const map = new Map<string, MediaItem>();
-    VAULT_DATA.forEach((category) => {
-      category.items.forEach((item) => map.set(item.id, item));
-    });
-    return map;
-  }, []);
-
-  const filteredItems = useMemo(() => {
-    if (activeFilter === 'all') {
-      return selectedCategory.items;
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!accountReady) {
+      setError('Connect an OnlyFans account to view the media vault.');
+      return;
     }
-    return selectedCategory.items.filter((item) => item.type === activeFilter);
-  }, [activeFilter, selectedCategory.items]);
+
+    let cancelled = false;
+    setLoadingLists(true);
+    setError(null);
+
+    const load = async () => {
+      try {
+        const data = await fetchVaultLists();
+        if (cancelled) return;
+        const normalized = normalizeCategories(data);
+        setCategories(normalized);
+        setSelectedCategoryId(normalized[0]?.id ?? 'all');
+        setItemsByCategory({});
+        setItemLookup({});
+        setSelectedItemIds(new Set());
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Failed to load media vault');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingLists(false);
+        }
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, accountReady, fetchVaultLists]);
+
+  useEffect(() => {
+    if (!isOpen || !accountReady) return;
+    if (!selectedCategoryId) return;
+    if (itemsByCategory[selectedCategoryId]) return;
+
+    let cancelled = false;
+    setError(null);
+    setLoadingMedia(true);
+
+    const loadMedia = async () => {
+      try {
+        const data = await fetchVaultMedia(selectedCategoryId);
+        if (cancelled) return;
+        const mapped = mapMediaItems(data);
+        setItemsByCategory((prev) => ({
+          ...prev,
+          [selectedCategoryId]: mapped,
+        }));
+        setItemLookup((prev) => {
+          const next = { ...prev };
+          mapped.forEach((item) => {
+            next[item.id] = item;
+          });
+          return next;
+        });
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Failed to load media');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingMedia(false);
+        }
+      }
+    };
+
+    loadMedia();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, accountReady, selectedCategoryId, itemsByCategory, fetchVaultMedia]);
+
+  const currentItems = itemsByCategory[selectedCategoryId] ?? [];
+  const filteredItems = useMemo(() => {
+    if (activeFilter === 'all') return currentItems;
+    return currentItems.filter((item) => item.type === activeFilter);
+  }, [activeFilter, currentItems]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setActiveFilter('all');
+  }, [selectedCategoryId, isOpen]);
 
   if (!isOpen) {
     return null;
@@ -175,7 +321,7 @@ export const MediaVaultModal = ({ isOpen, onClose, onAdd }: MediaVaultModalProps
   const handleAdd = () => {
     const selectedItems: MediaItem[] = [];
     selectedItemIds.forEach((id) => {
-      const item = itemsById.get(id);
+      const item = itemLookup[id];
       if (item) {
         selectedItems.push(item);
       }
@@ -185,6 +331,8 @@ export const MediaVaultModal = ({ isOpen, onClose, onAdd }: MediaVaultModalProps
   };
 
   const selectedCount = selectedItemIds.size;
+  const shouldShowEmpty = !loadingMedia && currentItems.length === 0;
+  const shouldShowFilterEmpty = !loadingMedia && currentItems.length > 0 && filteredItems.length === 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-8">
@@ -203,7 +351,7 @@ export const MediaVaultModal = ({ isOpen, onClose, onAdd }: MediaVaultModalProps
         <aside className="w-60 border-r border-border-color pr-4">
           <div className="text-xs font-semibold uppercase tracking-wide text-text-secondary">Vault</div>
           <div className="mt-4 space-y-1 text-sm">
-            {VAULT_DATA.map((category) => {
+            {categories.map((category) => {
               const isActive = category.id === selectedCategoryId;
               return (
                 <button
@@ -233,6 +381,7 @@ export const MediaVaultModal = ({ isOpen, onClose, onAdd }: MediaVaultModalProps
                 type="search"
                 placeholder="Search"
                 className="w-full bg-transparent text-sm text-text-primary outline-none placeholder:text-text-muted"
+                disabled
               />
             </div>
             <div className="flex flex-wrap gap-2 text-xs font-medium uppercase tracking-wide text-text-secondary">
@@ -253,12 +402,21 @@ export const MediaVaultModal = ({ isOpen, onClose, onAdd }: MediaVaultModalProps
             </div>
           </div>
 
-          <div className="mt-4 flex-1 overflow-y-auto">
-            {selectedCategory.items.length === 0 ? (
+          <div className="relative mt-4 flex-1 overflow-y-auto">
+            {(loadingLists || loadingMedia) && (
+              <div className="absolute inset-0 flex items-center justify-center bg-panel/80">
+                <Loader2 className="h-6 w-6 animate-spin text-text-secondary" />
+              </div>
+            )}
+            {error && !loadingLists ? (
+              <div className="flex h-full flex-col items-center justify-center text-center text-text-muted">
+                <p className="text-sm font-medium">{error}</p>
+              </div>
+            ) : shouldShowEmpty ? (
               <div className="flex h-full flex-col items-center justify-center text-text-muted">
                 <p className="text-sm font-medium">Empty</p>
               </div>
-            ) : filteredItems.length === 0 ? (
+            ) : shouldShowFilterEmpty ? (
               <div className="flex h-full flex-col items-center justify-center text-text-muted">
                 <p className="text-sm font-medium">No media found for this filter.</p>
               </div>
@@ -277,10 +435,14 @@ export const MediaVaultModal = ({ isOpen, onClose, onAdd }: MediaVaultModalProps
                           : 'border-border-color hover:border-primary/40'
                       }`}
                     >
-                      <img src={item.thumbnailUrl} alt={item.title} className="h-full w-full object-cover" />
+                      <img
+                        src={item.thumbnailUrl}
+                        alt={`${item.type} media`}
+                        className="h-full w-full object-cover"
+                      />
                       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                       <span className="absolute left-2 top-2 rounded-full bg-black/70 px-2 text-[10px] font-semibold uppercase tracking-wide text-white">
-                        {item.dateLabel}
+                        {formatDateLabel(item.createdAt)}
                       </span>
                       {isSelected && (
                         <span className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white">
@@ -308,12 +470,13 @@ export const MediaVaultModal = ({ isOpen, onClose, onAdd }: MediaVaultModalProps
             </span>
             <button
               type="button"
+              disabled={selectedCount === 0}
               onClick={() => {
                 handleAdd();
                 onClose();
               }}
               className={`rounded-full bg-primary px-6 py-1 text-white transition hover:bg-primary/80 ${
-                selectedCount === 0 ? 'opacity-60' : ''
+                selectedCount === 0 ? 'cursor-not-allowed opacity-60' : ''
               }`}
             >
               Add

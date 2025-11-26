@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AIControls } from './AIControls';
 import { AIMode, Message, Fan } from "../../types/chat";
 import { SendIcon } from "./icons/SendIcon";
@@ -7,6 +7,8 @@ import { MessageToolbar } from './MessageToolbar';
 import { PriceLockModal } from './PriceLockModal';
 import { MediaVaultModal, MediaItem } from './MediaVaultModal';
 import { PriceLockBar } from './PriceLockBar';
+import { useSocialAccounts } from '../../contexts/SocialAccountsContext';
+import type { SocialAccount } from '../../lib/supabase';
 
 interface MessageInputProps {
   onSendMessage: (content: string, sender: 'model' | 'ai') => void;
@@ -36,6 +38,26 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const [isMediaVaultOpen, setIsMediaVaultOpen] = useState(false);
   const [, setAttachedMedia] = useState<MediaItem[]>([]);
   const prevSendingRef = useRef(false);
+  const { accounts } = useSocialAccounts();
+
+  const resolveAccount = (acc?: SocialAccount) => {
+    if (!acc) return undefined;
+    if (acc.platform.toLowerCase() !== 'onlyfans') return undefined;
+    if (!acc.platform_user_id) return undefined;
+    return acc;
+  };
+
+  const vaultAccount = useMemo(() => {
+    if (socialAccountId) {
+      const matched = resolveAccount(accounts.find((acc) => acc.id === socialAccountId));
+      if (matched) return matched;
+    }
+    return resolveAccount(
+      accounts.find(
+        (acc) => acc.platform.toLowerCase() === 'onlyfans' && !!acc.platform_user_id,
+      ),
+    );
+  }, [accounts, socialAccountId]);
 
   // Clear text when sending completes (sendingMessage changes from true to false)
   useEffect(() => {
@@ -128,6 +150,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           setAttachedMedia(items);
           setIsMediaVaultOpen(false);
         }}
+        accountId={vaultAccount?.id}
+        accountPlatform={vaultAccount?.platform}
+        accountUserId={vaultAccount?.platform_user_id}
       />
     </div>
   );
