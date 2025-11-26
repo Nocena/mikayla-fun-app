@@ -115,7 +115,27 @@ export const ChatView = () => {
     }
   };
 
-  const handleSendMessage = async (content: string, sender: 'model' | 'ai') => {
+  const handleSendMessage = async (
+    content: string,
+    sender: 'model' | 'ai',
+    options?: {
+      price?: number;
+      lockedText?: boolean;
+      attachments?: Array<{
+        type: 'uploaded' | 'vault';
+        vaultImageId?: string;
+        uploadResult?: {
+          processId: string;
+          host: string;
+          extra: string;
+          sourceUrl?: string;
+        };
+        file?: {
+          name: string;
+        };
+      }>;
+    }
+  ) => {
     if (!selectedConversation || sendingMessage) return;
 
     // Find the account that owns this conversation
@@ -131,12 +151,33 @@ export const ChatView = () => {
     setSendingMessage(true);
 
     try {
+      // Format attachments for the service
+      const formattedAttachments = options?.attachments?.map((att) => {
+        if (att.type === 'vault') {
+          return {
+            type: 'vault' as const,
+            vaultImageId: att.vaultImageId,
+          };
+        } else {
+          return {
+            type: 'uploaded' as const,
+            uploadResult: att.uploadResult,
+            file: att.file,
+          };
+        }
+      });
+
       // Send message via API
       const success = await sendMessage(
         selectedConversation.id, // chatId
         content,
         account.platform_user_id,
-        account.id
+        account.id,
+        {
+          price: options?.price,
+          lockedText: options?.lockedText,
+          attachments: formattedAttachments,
+        }
       );
 
       if (success) {

@@ -10,10 +10,33 @@ import { PriceLockBar } from './PriceLockBar';
 import { MediaAttachmentBar, AttachedFile, isSupportedFile } from './MediaAttachmentBar';
 import { EmojiPicker } from './EmojiPicker';
 import { useSocialAccounts } from '../../contexts/SocialAccountsContext';
+import { useWebviews } from '../../contexts/WebviewContext';
+import { filterAllowedHeaders } from '../../services/onlyfansChatsService';
+import { createSignedUploadUrlScript, convertUploadedFileScript, uploadFileToS3 } from '../../services/onlyfansUploadService';
 import type { SocialAccount } from '../../lib/supabase';
 
 interface MessageInputProps {
-  onSendMessage: (content: string, sender: 'model' | 'ai') => void;
+  onSendMessage: (
+    content: string,
+    sender: 'model' | 'ai',
+    options?: {
+      price?: number;
+      lockedText?: boolean;
+      attachments?: Array<{
+        type: 'uploaded' | 'vault';
+        vaultImageId?: string;
+        uploadResult?: {
+          processId: string;
+          host: string;
+          extra: string;
+          sourceUrl?: string;
+        };
+        file?: {
+          name: string;
+        };
+      }>;
+    }
+  ) => void;
   conversationHistory: Message[];
   sendingMessage?: boolean;
   socialAccountId?: string;
@@ -38,13 +61,13 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
   const [priceLockValue, setPriceLockValue] = useState<number | null>(null);
   const [isMediaVaultOpen, setIsMediaVaultOpen] = useState(false);
-  const [, setAttachedMedia] = useState<MediaItem[]>([]);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const prevSendingRef = useRef(false);
   const { accounts } = useSocialAccounts();
+  const { webviewRefs } = useWebviews();
 
   const resolveAccount = (acc?: SocialAccount) => {
     if (!acc) return undefined;
@@ -65,18 +88,49 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     );
   }, [accounts, socialAccountId]);
 
-  // Clear text when sending completes (sendingMessage changes from true to false)
+  // Clear text, attachments, and price when sending completes (sendingMessage changes from true to false)
   useEffect(() => {
     if (prevSendingRef.current && !sendingMessage) {
-      // Was sending, now not sending - clear the text
+      // Was sending, now not sending - clear the text, attachments, and price
       setText('');
+      setAttachedFiles([]);
+      setPriceLockValue(null);
     }
     prevSendingRef.current = sendingMessage;
   }, [sendingMessage]);
 
   const handleSend = () => {
-    if (text.trim() && !sendingMessage) {
-      onSendMessage(text, 'model'); // Assume manual sends are from the 'model'
+    if ((text.trim() || attachedFiles.length > 0) && !sendingMessage) {
+      // Format attachments for sending
+      const formattedAttachments = attachedFiles
+        .filter((file) => {
+          // Only include completed uploads or vault media
+          if (file.type === 'vault') return true;
+          if (file.type === 'uploaded' && file.uploadStatus === 'completed' && file.uploadResult) {
+            return true;
+          }
+          return false;
+        })
+        .map((file) => {
+          if (file.type === 'vault') {
+            return {
+              type: 'vault' as const,
+              vaultImageId: file.vaultImageId,
+            };
+          } else {
+            return {
+              type: 'uploaded' as const,
+              uploadResult: file.uploadResult,
+              file: file.file ? { name: file.file.name } : undefined,
+            };
+          }
+        });
+
+      onSendMessage(text, 'model', {
+        price: priceLockValue && priceLockValue > 0 ? priceLockValue : undefined,
+        lockedText: priceLockValue && priceLockValue > 0 ? true : undefined,
+        attachments: formattedAttachments.length > 0 ? formattedAttachments : undefined,
+      });
       // Don't clear text here - keep it in the box while sending
     }
   };
@@ -119,12 +173,23 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     const supportedFiles = files.filter(isSupportedFile);
 
     const newAttachments: AttachedFile[] = supportedFiles.map((file) => {
-      const id = `${Date.now()}-${Math.random()}`;
+      const id = `upload-${Date.now()}-${Math.random()}`;
       const previewUrl = URL.createObjectURL(file);
-      return { id, file, previewUrl };
+      return {
+        id,
+        type: 'uploaded' as const,
+        file,
+        previewUrl,
+        uploadStatus: 'pending' as const,
+      };
     });
 
     setAttachedFiles((prev) => [...prev, ...newAttachments]);
+
+    // Start upload for new files
+    newAttachments.forEach((attachment) => {
+      uploadFile(attachment);
+    });
 
     // Reset input
     if (fileInputRef.current) {
@@ -132,10 +197,121 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     }
   };
 
+  const uploadFile = async (attachment: AttachedFile) => {
+    // Only upload files, not vault media
+    if (attachment.type === 'vault' || !attachment.file) {
+      return;
+    }
+
+    if (!vaultAccount?.id || !vaultAccount?.platform_user_id) {
+      updateFileStatus(attachment.id, 'error', 0, 'No OnlyFans account available');
+      return;
+    }
+
+    const accountId = vaultAccount.id;
+    const userId = vaultAccount.platform_user_id;
+    const partitionName = `persist:${vaultAccount.platform.toLowerCase()}-${accountId}`;
+
+    try {
+      // Update status to uploading
+      updateFileStatus(attachment.id, 'uploading', 10);
+
+      // Step 1: Create signed upload URL
+      const headers = await window.electronAPI.headers.get(partitionName);
+      const allowedHeaders = filterAllowedHeaders(
+        headers.success && headers.data ? headers.data : {},
+      );
+      if (Object.keys(allowedHeaders).length === 0) {
+        throw new Error('Missing authentication headers');
+      }
+
+      const webviewRef = webviewRefs.current[accountId];
+      if (!webviewRef) {
+        throw new Error('OnlyFans browser session is not ready');
+      }
+
+      const createScript = createSignedUploadUrlScript(
+        allowedHeaders,
+        userId,
+        attachment.file.type,
+        attachment.file.name,
+      );
+      const createResponse = await webviewRef.executeScript(createScript);
+
+      if (!createResponse?.ok || !createResponse.data) {
+        throw new Error('Failed to create upload URL');
+      }
+
+      const { putUrl, getUrl } = createResponse.data;
+      const key = createResponse.key || `upload/${Date.now()}/${attachment.file.name}`;
+
+      updateFileStatus(attachment.id, 'uploading', 30);
+
+      // Step 2: Upload file to S3
+      await uploadFileToS3(putUrl, attachment.file);
+      updateFileStatus(attachment.id, 'converting', 60);
+
+      console.log("getUrl", getUrl)
+
+      // Step 3: Convert file
+      const convertScript = convertUploadedFileScript(getUrl, key, attachment.file.name, userId);
+      const convertResponse = await webviewRef.executeScript(convertScript);
+
+      console.log("convertScript", convertScript, convertResponse)
+
+      if (!convertResponse?.ok || !convertResponse.data) {
+        throw new Error('Failed to convert file');
+      }
+
+      const convertData = convertResponse.data;
+      updateFileStatus(
+        attachment.id,
+        'completed',
+        100,
+        undefined,
+        {
+          sourceUrl: convertData.sourceUrl,
+          processId: convertData.processId,
+          extra: convertData.extra,
+          host: convertData.host,
+        },
+      );
+    } catch (error) {
+      updateFileStatus(
+        attachment.id,
+        'error',
+        0,
+        error instanceof Error ? error.message : 'Upload failed',
+      );
+    }
+  };
+
+  const updateFileStatus = (
+    id: string,
+    status: AttachedFile['uploadStatus'],
+    progress?: number,
+    error?: string,
+    result?: AttachedFile['uploadResult'],
+  ) => {
+    setAttachedFiles((prev) =>
+      prev.map((file) =>
+        file.id === id
+          ? {
+              ...file,
+              uploadStatus: status,
+              uploadProgress: progress,
+              uploadError: error,
+              uploadResult: result,
+            }
+          : file,
+      ),
+    );
+  };
+
   const handleRemoveFile = (id: string) => {
     setAttachedFiles((prev) => {
       const fileToRemove = prev.find((f) => f.id === id);
-      if (fileToRemove) {
+      if (fileToRemove && fileToRemove.type === 'uploaded' && fileToRemove.previewUrl) {
         URL.revokeObjectURL(fileToRemove.previewUrl);
       }
       return prev.filter((f) => f.id !== id);
@@ -150,7 +326,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   useEffect(() => {
     return () => {
       attachedFiles.forEach((file) => {
-        URL.revokeObjectURL(file.previewUrl);
+        if (file.type === 'uploaded' && file.previewUrl) {
+          URL.revokeObjectURL(file.previewUrl);
+        }
       });
     };
   }, [attachedFiles]);
@@ -242,7 +420,13 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         isOpen={isMediaVaultOpen}
         onClose={() => setIsMediaVaultOpen(false)}
         onAdd={(items) => {
-          setAttachedMedia(items);
+          const vaultAttachments: AttachedFile[] = items.map((item) => ({
+            id: `vault-${item.id}-${Date.now()}`,
+            type: 'vault' as const,
+            vaultImageId: item.id,
+            thumbnailUrl: item.thumbnailUrl,
+          }));
+          setAttachedFiles((prev) => [...prev, ...vaultAttachments]);
           setIsMediaVaultOpen(false);
         }}
         accountId={vaultAccount?.id}

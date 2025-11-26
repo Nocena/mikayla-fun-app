@@ -4,6 +4,7 @@ import { BrowserIframeHandle } from '../components/BrowserContent/BrowserIframe'
 import {
   getSendMessageScript,
   filterAllowedHeaders,
+  SendMessageAttachments,
 } from '../services/onlyfansChatsService';
 
 interface UseSendMessageProps {
@@ -19,7 +20,12 @@ export const useSendMessage = ({ accounts, webviewRefs }: UseSendMessageProps) =
     chatId: string,
     text: string,
     modelUserId: string,
-    accountId?: string
+    accountId?: string,
+    options?: {
+      price?: number;
+      lockedText?: boolean;
+      attachments?: SendMessageAttachments[];
+    }
   ): Promise<boolean> => {
     // Find the account to use
     let account: SocialAccount | undefined;
@@ -63,7 +69,8 @@ export const useSendMessage = ({ accounts, webviewRefs }: UseSendMessageProps) =
         allowedHeaders,
         account.platform_user_id,
         chatId,
-        text
+        text,
+        options
       );
       const sendRes = await ref.executeScript(sendScript);
 

@@ -44,6 +44,7 @@ const MESSAGE_TOOLBAR_ACTIONS: ToolbarAction[] = [
     label: 'Video',
     Icon: Video,
     tooltip: 'Attach videos up to 2 minutes',
+    disabled: true,
   },
   {
     key: 'voice',

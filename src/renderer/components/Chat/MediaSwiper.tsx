@@ -2,6 +2,7 @@ import React from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination } from 'swiper/modules';
 import type { Swiper as SwiperType } from 'swiper';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { MessageMedia } from '../../types/chat';
 
 // Import Swiper styles
@@ -18,17 +19,30 @@ export const MediaSwiper: React.FC<MediaSwiperProps> = ({ media, hasTextBelow = 
   const [swiper, setSwiper] = React.useState<SwiperType | null>(null);
   const [activeIndex, setActiveIndex] = React.useState(0);
 
+  const handlePrev = () => {
+    if (swiper) {
+      swiper.slidePrev();
+    }
+  };
+
+  const handleNext = () => {
+    if (swiper) {
+      swiper.slideNext();
+    }
+  };
+
   if (media.length === 0) {
     return null;
   }
 
   const roundedClasses = hasTextBelow ? 'rounded-t-2xl' : 'rounded-2xl';
+  const isFirstSlide = activeIndex === 0;
+  const isLastSlide = activeIndex === media.length - 1;
 
   return (
     <div className={`relative w-full ${roundedClasses} overflow-hidden bg-surface`}>
       <Swiper
-        modules={[Navigation, Pagination]}
-        navigation={media.length > 1}
+        modules={[Pagination]}
         pagination={{
           clickable: false,
           renderBullet: (index, className) => {
@@ -50,35 +64,33 @@ export const MediaSwiper: React.FC<MediaSwiperProps> = ({ media, hasTextBelow = 
         ))}
       </Swiper>
       {media.length > 1 && (
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-3 py-1 text-xs font-medium text-white z-10 pointer-events-none">
-          {activeIndex + 1} / {media.length}
-        </div>
+        <>
+          <button
+            onClick={handlePrev}
+            disabled={isFirstSlide}
+            className={`absolute left-2 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-black/60 text-white transition-all hover:bg-black/80 ${
+              isFirstSlide ? 'opacity-30 cursor-not-allowed' : ''
+            }`}
+            aria-label="Previous"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button
+            onClick={handleNext}
+            disabled={isLastSlide}
+            className={`absolute right-2 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-black/60 text-white transition-all hover:bg-black/80 ${
+              isLastSlide ? 'opacity-30 cursor-not-allowed' : ''
+            }`}
+            aria-label="Next"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-3 py-1 text-xs font-medium text-white z-10 pointer-events-none">
+            {activeIndex + 1} / {media.length}
+          </div>
+        </>
       )}
       <style>{`
-        .swiper-button-next,
-        .swiper-button-prev {
-          color: white;
-          background: rgba(0, 0, 0, 0.5);
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          transition: background 0.2s;
-        }
-        .swiper-button-next:hover,
-        .swiper-button-prev:hover {
-          background: rgba(0, 0, 0, 0.7);
-        }
-        .swiper-button-next::after,
-        .swiper-button-prev::after {
-          font-size: 12px;
-          font-weight: 700;
-        }
-        .swiper-button-next {
-          right: 8px;
-        }
-        .swiper-button-prev {
-          left: 8px;
-        }
         .swiper-pagination {
           display: none;
         }

@@ -157,6 +157,22 @@ export const addUserIdToHeaders = (headers: Record<string, string>, userId: stri
   }
 };
 
+export interface SendMessageAttachments {
+  type: 'uploaded' | 'vault';
+  // For vault media
+  vaultImageId?: string;
+  // For uploaded files
+  uploadResult?: {
+    processId: string;
+    host: string;
+    extra: string;
+    sourceUrl?: string;
+  };
+  file?: {
+    name: string;
+  };
+}
+
 /**
  * Generates JavaScript code to send a message to OnlyFans API
  */
@@ -164,16 +180,47 @@ export const getSendMessageScript = (
   headers: Record<string, string>, 
   userId: string, 
   chatId: string | number, 
-  text: string
+  text: string,
+  options?: {
+    price?: number;
+    lockedText?: boolean;
+    attachments?: SendMessageAttachments[];
+  }
 ): string => {
   const subUrl = `/api2/v2/chats/${chatId}/messages`;
   const updatedHeaders = needSignTimeHeaders(headers, subUrl, userId);
   
+  const price = options?.price ?? 0;
+  const lockedText = options?.lockedText ?? false;
+  const attachments = options?.attachments ?? [];
+
+  // Format mediaFiles based on attachment type
+  const mediaFiles: (number | {
+    processId: string;
+    host: string;
+    name: string;
+    extra: string;
+  })[] = attachments.map((attachment) => {
+    if (attachment.type === 'vault' && attachment.vaultImageId) {
+      // Vault image: just the ID
+      return parseInt(attachment.vaultImageId, 10);
+    } else if (attachment.type === 'uploaded' && attachment.uploadResult) {
+      // Uploaded file: full object
+      return {
+        processId: attachment.uploadResult.processId,
+        host: attachment.uploadResult.host,
+        name: attachment.file?.name || 'unknown',
+        extra: attachment.uploadResult.extra,
+      };
+    }
+    return null;
+  }).filter((item): item is number | { processId: string; host: string; name: string; extra: string } => item !== null);
+  
   const payload = {
-    text: `<p>${text}</p>`,
-    lockedText: false,
-    mediaFiles: [],
-    price: 0,
+    text: text ? `<p>${text}</p>` : '',
+    lockedText: lockedText && price > 0,
+    mediaFiles,
+    price: lockedText && price > 0 ? price : 0,
     previews: [],
     rfTag: [],
     rfGuest: [],

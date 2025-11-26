@@ -10,7 +10,27 @@ import { SparklesIcon } from './icons/SparklesIcon';
 
 interface ChatWindowProps {
   conversation: Conversation | null;
-  onSendMessage: (content: string, sender: 'model' | 'ai') => void;
+  onSendMessage: (
+    content: string,
+    sender: 'model' | 'ai',
+    options?: {
+      price?: number;
+      lockedText?: boolean;
+      attachments?: Array<{
+        type: 'uploaded' | 'vault';
+        vaultImageId?: string;
+        uploadResult?: {
+          processId: string;
+          host: string;
+          extra: string;
+          sourceUrl?: string;
+        };
+        file?: {
+          name: string;
+        };
+      }>;
+    }
+  ) => void;
   sendingMessage?: boolean;
 }
 
