@@ -22,7 +22,7 @@ function extractMedia(entry: any): MessageMedia[] {
                 fullUrl: mediaItem.files.full?.url || mediaItem.files.preview?.url || mediaItem.files.thumb.url,
             };
         })
-        .filter((m): m is MessageMedia => m !== null);
+        .filter((m: any): m is MessageMedia => m !== null);
 }
 
 /**
@@ -55,9 +55,10 @@ export function buildMessages(
                 content: entry.text || "",
                 timestamp: entry.createdAt,
                 media: media.length > 0 ? media : undefined,
-                price: typeof entry.price === 'number' ? entry.price : undefined,
+                price: typeof entry.price === 'number' ? entry.price : 0,
                 canPurchase: typeof entry.canPurchase === 'boolean' ? entry.canPurchase : undefined,
                 lockedText: typeof entry.lockedText === 'boolean' ? entry.lockedText : undefined,
+                isFree: typeof entry.isFree === 'boolean' ? entry.isFree : undefined,
             };
 
             return message;

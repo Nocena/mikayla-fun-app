@@ -65,7 +65,7 @@ export const Message: React.FC<MessageProps> = ({ message, fanAvatar, fanName = 
           )}
         </div>
         <div className="flex items-center gap-1 mt-1.5 px-1" style={{ justifyContent: isFan ? 'flex-start' : 'flex-end' }}>
-          {message.lockedText && message.price !== undefined && message.price > 0 && (
+          {!message.isFree && message.price && message.price > 0 && (
             <>
               <span className="text-xs text-text-secondary">
                 ${message.price} {message.canPurchase ? 'not paid yet' : 'paid'}

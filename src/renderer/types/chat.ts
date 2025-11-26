@@ -22,9 +22,10 @@ export interface Message {
     content: string;
     timestamp: string;
     media?: MessageMedia[];
-    price?: number;
+    price: number;
     canPurchase?: boolean;
     lockedText?: boolean;
+    isFree?: boolean;
 }
 
 export interface Conversation {
