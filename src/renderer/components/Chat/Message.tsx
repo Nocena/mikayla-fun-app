@@ -4,6 +4,7 @@ import {SparklesIcon} from "./icons/SparklesIcon";
 import {Avatar} from "./Avatar";
 import {formatRelativeTime} from "../../utils/dateUtils";
 import { MediaSwiper } from './MediaSwiper';
+import { LockedMessageCard } from './LockedMessageCard';
 
 interface MessageProps {
   message: MessageType;
@@ -14,8 +15,12 @@ interface MessageProps {
 export const Message: React.FC<MessageProps> = ({ message, fanAvatar, fanName = 'Fan' }) => {
   const isFan = message.sender === 'fan';
   const isAI = message.sender === 'ai';
-  const hasMedia = !!message.media && message.media.length > 0;
-  const hasText = !!message.content && message.content.trim().length > 0;
+  const isLockedFanMessage = isFan && !!message.canPurchase;
+  const priceValue = message.price ?? 0;
+  const hasUnlockedMedia = !!message.media && message.media.length > 0 && !isLockedFanMessage;
+  const hasUnlockedText = !!message.content && message.content.trim().length > 0 && !isLockedFanMessage;
+  const lockedMediaCount = message.media?.length ?? 0;
+  const lockedHasText = !!message.lockedText || (!!message.content && message.content.trim().length > 0);
 
   const wrapperClasses = `flex items-end gap-3 ${isFan ? 'justify-start' : 'justify-end'}`;
   
@@ -47,21 +52,27 @@ export const Message: React.FC<MessageProps> = ({ message, fanAvatar, fanName = 
       )}
       <div className="flex flex-col" style={{ alignItems: isFan ? 'flex-start' : 'flex-end' }}>
         <div className="max-w-xs md:max-w-md lg:max-w-lg overflow-hidden rounded-2xl">
-          {hasMedia && (
-            <MediaSwiper media={message.media!} hasTextBelow={hasText} />
-          )}
-          {hasText && (
-            <div className={getBubbleClasses(hasMedia)}>
+          {isLockedFanMessage ? (
+            <LockedMessageCard price={priceValue} mediaCount={lockedMediaCount} hasText={lockedHasText} />
+          ) : (
+            <>
+              {hasUnlockedMedia && (
+                <MediaSwiper media={message.media!} hasTextBelow={hasUnlockedText} />
+              )}
+              {hasUnlockedText && (
+                <div className={getBubbleClasses(hasUnlockedMedia)}>
 {/*
               {isAI && !hasMedia && (
                 <SparklesIcon className="absolute -top-2 -left-2 w-5 h-5 text-primary bg-panel rounded-full p-1" />
               )}
 */}
-              <div
-                className="text-sm break-words"
-                dangerouslySetInnerHTML={{ __html: message.content || '' }}
-              />
-            </div>
+                  <div
+                    className="text-sm break-words"
+                    dangerouslySetInnerHTML={{ __html: message.content || '' }}
+                  />
+                </div>
+              )}
+            </>
           )}
         </div>
         <div className="flex items-center gap-1 mt-1.5 px-1" style={{ justifyContent: isFan ? 'flex-start' : 'flex-end' }}>
