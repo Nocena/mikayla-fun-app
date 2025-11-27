@@ -243,6 +243,7 @@ export const ChatView = () => {
             conversation={selectedConversation}
             onSendMessage={handleSendMessage}
             sendingMessage={sendingMessage}
+            isLoadingMessages={loadingMessages}
         />
       </div>
   );

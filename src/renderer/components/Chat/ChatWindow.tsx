@@ -32,9 +32,15 @@ interface ChatWindowProps {
     }
   ) => void;
   sendingMessage?: boolean;
+  isLoadingMessages?: boolean;
 }
 
-export const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onSendMessage, sendingMessage = false }) => {
+export const ChatWindow: React.FC<ChatWindowProps> = ({ 
+  conversation, 
+  onSendMessage, 
+  sendingMessage = false,
+  isLoadingMessages = false,
+}) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [agentInsights, setAgentInsights] = useState<AgentOrchestratorOutput | null>(null);
   const [isAgentLoading, setIsAgentLoading] = useState(false);
@@ -100,8 +106,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, onSendMess
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="flex flex-col gap-4">
+        <div className="flex-1 overflow-y-auto p-6 relative">
+          {isLoadingMessages && (
+            <div className="absolute inset-0 flex items-center justify-center bg-panel/70 z-10">
+              <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+            </div>
+          )}
+          <div className={`flex flex-col gap-4 transition-opacity ${isLoadingMessages ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
             {conversation.messages.map((msg) => (
               <Message
                 key={msg.id}
