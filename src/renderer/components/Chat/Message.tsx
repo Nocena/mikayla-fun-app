@@ -10,9 +10,17 @@ interface MessageProps {
   message: MessageType;
   fanAvatar?: string | null;
   fanName?: string;
+  onRequestUnlock?: (message: MessageType) => void;
+  unlockingMessageId?: string | null;
 }
 
-export const Message: React.FC<MessageProps> = ({ message, fanAvatar, fanName = 'Fan' }) => {
+export const Message: React.FC<MessageProps> = ({
+  message,
+  fanAvatar,
+  fanName = 'Fan',
+  onRequestUnlock,
+  unlockingMessageId,
+}) => {
   const isFan = message.sender === 'fan';
   const isAI = message.sender === 'ai';
   const isLockedFanMessage = isFan && !!message.canPurchase;
@@ -53,7 +61,13 @@ export const Message: React.FC<MessageProps> = ({ message, fanAvatar, fanName = 
       <div className="flex flex-col" style={{ alignItems: isFan ? 'flex-start' : 'flex-end' }}>
         <div className="max-w-xs md:max-w-md lg:max-w-lg overflow-hidden rounded-2xl">
           {isLockedFanMessage ? (
-            <LockedMessageCard price={priceValue} mediaCount={lockedMediaCount} hasText={lockedHasText} />
+            <LockedMessageCard
+              price={priceValue}
+              mediaCount={lockedMediaCount}
+              hasText={lockedHasText}
+              onUnlock={() => onRequestUnlock?.(message)}
+              isUnlocking={unlockingMessageId === message.id}
+            />
           ) : (
             <>
               {hasUnlockedMedia && (

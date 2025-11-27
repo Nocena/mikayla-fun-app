@@ -35,12 +35,16 @@ interface LockedMessageCardProps {
   price: number;
   mediaCount: number;
   hasText: boolean;
+  onUnlock?: () => void;
+  isUnlocking?: boolean;
 }
 
 export const LockedMessageCard: React.FC<LockedMessageCardProps> = ({
   price,
   mediaCount,
   hasText,
+  onUnlock,
+  isUnlocking = false,
 }) => {
   const formattedPrice = price.toFixed(2).replace(/\.00$/, '');
 
@@ -78,8 +82,24 @@ export const LockedMessageCard: React.FC<LockedMessageCardProps> = ({
           <LockIcon className="h-4 w-4 text-text-secondary" />
         </span>
       </div>
-      <button className="mt-4 w-full rounded-full bg-primary py-2 text-sm font-semibold text-white transition hover:bg-primary/90">
-        Unlock for ${formattedPrice}
+      <button
+        className={`mt-4 w-full rounded-full py-2 text-sm font-semibold text-white transition ${
+          isUnlocking
+            ? 'bg-primary/60 cursor-not-allowed'
+            : 'bg-primary hover:bg-primary/90'
+        }`}
+        type="button"
+        onClick={onUnlock}
+        disabled={isUnlocking}
+      >
+        {isUnlocking ? (
+          <span className="flex items-center justify-center gap-2">
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+            Processing...
+          </span>
+        ) : (
+          <>Unlock for ${formattedPrice}</>
+        )}
       </button>
     </div>
   );

@@ -1,12 +1,17 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Message } from './Message';
 import { MessageInput } from './MessageInput';
-import { Conversation } from "../../types/chat";
+import { Conversation, Message as ChatMessage } from "../../types/chat";
 import { Avatar } from "./Avatar";
 import { AgentAdvisorPanel } from './AgentAdvisorPanel';
 import { AgentOrchestratorOutput } from '../../types/agent';
 import { aiCacheService } from '../../services/aiCacheService';
 import { SparklesIcon } from './icons/SparklesIcon';
+import { PurchaseConfirmModal } from './PurchaseConfirmModal';
+import { useSocialAccounts } from '../../contexts/SocialAccountsContext';
+import { useWebviews } from '../../contexts/WebviewContext';
+import { usePaymentMethodsVat } from '../../hooks/usePaymentMethodsVat';
+import { OnlyFansPaymentMethodsVatResponse } from '../../services/onlyfansPaymentsService';
 
 interface ChatWindowProps {
   conversation: Conversation | null;
@@ -45,6 +50,24 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const [agentInsights, setAgentInsights] = useState<AgentOrchestratorOutput | null>(null);
   const [isAgentLoading, setIsAgentLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [unlockingMessageId, setUnlockingMessageId] = useState<string | null>(null);
+  const [purchaseState, setPurchaseState] = useState<{
+    isOpen: boolean;
+    isLoading: boolean;
+    error?: string;
+    quote?: OnlyFansPaymentMethodsVatResponse | null;
+    message?: ChatMessage | null;
+    selectedCardId?: number | null;
+  }>({
+    isOpen: false,
+    isLoading: false,
+    quote: null,
+    message: null,
+    selectedCardId: null,
+  });
+  const { accounts } = useSocialAccounts();
+  const { webviewRefs } = useWebviews();
+  const { fetchPaymentMethodsVat } = usePaymentMethodsVat({ accounts, webviewRefs });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -56,6 +79,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   useEffect(() => {
     if (!conversation?.id) {
       setAgentInsights(null);
+      setPurchaseState((prev) => ({
+        ...prev,
+        isOpen: false,
+        isLoading: false,
+        quote: null,
+        message: null,
+        selectedCardId: null,
+        error: undefined,
+      }));
       return;
     }
 
@@ -68,6 +100,69 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       setAgentInsights(null);
     }
   }, [conversation?.id]);
+
+  const handleUnlockRequest = async (message: ChatMessage) => {
+    if (!conversation || !message.price || message.price <= 0) return;
+
+    setUnlockingMessageId(message.id);
+    setPurchaseState({
+      isOpen: true,
+      isLoading: true,
+      quote: null,
+      message,
+      error: undefined,
+      selectedCardId: null,
+    });
+
+    try {
+      const quote = await fetchPaymentMethodsVat({
+        price: message.price,
+        toUserId: conversation.fan.id,
+        accountId: conversation.accountId,
+      });
+      const defaultCardId =
+        quote.cards?.find((card) => card.isDefault)?.id ??
+        quote.cards?.[0]?.id ??
+        null;
+      setPurchaseState({
+        isOpen: true,
+        isLoading: false,
+        quote,
+        message,
+        error: undefined,
+        selectedCardId: defaultCardId ?? undefined,
+      });
+    } catch (error: unknown) {
+      setPurchaseState({
+        isOpen: true,
+        isLoading: false,
+        quote: null,
+        message,
+        error: error instanceof Error ? error.message : 'Unable to load payment info.',
+        selectedCardId: null,
+      });
+    } finally {
+      setUnlockingMessageId(null);
+    }
+  };
+
+  const handleClosePurchaseModal = () => {
+    setPurchaseState({
+      isOpen: false,
+      isLoading: false,
+      quote: null,
+      message: null,
+      selectedCardId: null,
+      error: undefined,
+    });
+  };
+
+  const handleSelectPaymentMethod = (cardId: number) => {
+    setPurchaseState((prev) => ({
+      ...prev,
+      selectedCardId: cardId,
+    }));
+  };
 
   if (!conversation) {
     return (
@@ -119,6 +214,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                 message={msg}
                 fanAvatar={conversation.fan.avatarUrl}
                 fanName={conversation.fan.name}
+                onRequestUnlock={handleUnlockRequest}
+                unlockingMessageId={unlockingMessageId}
               />
             ))}
             <div ref={messagesEndRef} />
@@ -154,6 +251,16 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isSidebarOpen ? 'w-72 opacity-100' : 'w-0 opacity-0'}`}>
         <AgentAdvisorPanel insights={agentInsights} isLoading={isAgentLoading} />
       </div>
+      <PurchaseConfirmModal
+        isOpen={purchaseState.isOpen}
+        onClose={handleClosePurchaseModal}
+        price={purchaseState.message?.price ?? 0}
+        isLoading={purchaseState.isLoading}
+        quote={purchaseState.quote}
+        error={purchaseState.error}
+        selectedCardId={purchaseState.selectedCardId ?? undefined}
+        onSelectCard={handleSelectPaymentMethod}
+      />
     </div>
   );
 };
