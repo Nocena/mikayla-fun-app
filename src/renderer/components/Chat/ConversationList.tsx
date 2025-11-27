@@ -10,6 +10,7 @@ interface ConversationListProps {
   selectedConversationId?: string;
   onConversationClick: (conversationId: string) => void;
   accounts: SocialAccount[];
+  isCollapsed?: boolean;
 }
 
 const ConversationItem: React.FC<{ 
@@ -81,13 +82,47 @@ export const ConversationList: React.FC<ConversationListProps> = ({
   conversations, 
   selectedConversationId,
   onConversationClick,
-  accounts
+  accounts,
+  isCollapsed = false
 }) => {
   // Create a map of account ID to account for quick lookup
   const accountMap = new Map(accounts.map(acc => [acc.id, acc]));
 
+  // Collapsed view: show only avatars
+  if (isCollapsed) {
+    return (
+      <div className="w-full h-full flex flex-col">
+        <div className="flex-1 overflow-y-auto p-2 pt-14">
+          <div className="flex flex-col gap-2 items-center">
+            {conversations.map((conv) => (
+              <div
+                key={conv.id}
+                onClick={() => onConversationClick(conv.id)}
+                className={`relative cursor-pointer transition-all duration-200 ${
+                  conv.id === selectedConversationId ? 'ring-2 ring-primary rounded-full' : ''
+                }`}
+                title={conv.fan.name}
+              >
+                <Avatar avatarUrl={conv.fan.avatarUrl} name={conv.fan.name} size="md" />
+                {conv.fan.isOnline && (
+                  <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-accent ring-2 ring-panel" />
+                )}
+                {conv.unreadCount > 0 && (
+                  <div className="absolute -top-1 -right-1 flex items-center justify-center bg-primary text-white text-[10px] font-bold rounded-full h-4 w-4 min-w-[16px]">
+                    {conv.unreadCount > 9 ? '9+' : conv.unreadCount}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Expanded view: full conversation list
   return (
-    <div className="w-full md:w-1/3 lg:w-1/4 h-full border-r border-border-color flex flex-col">
+    <div className="w-full h-full flex flex-col">
       <div className="p-4 border-b border-border-color flex-shrink-0">
         <h2 className="text-xl font-bold">Messages</h2>
         {/* TODO: Add search/filter input */}

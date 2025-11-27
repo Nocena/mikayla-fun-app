@@ -2,6 +2,7 @@ import {useState, useEffect} from 'react';
 import {Conversation, Message} from '../types/chat';
 import {ConversationList} from "../components/Chat/ConversationList";
 import {ChatWindow} from "../components/Chat/ChatWindow";
+import {ResizableSidebar} from "../components/Chat/ResizableSidebar";
 import {useConversations} from '../contexts/ConversationsContext';
 import {useSocialAccounts} from '../contexts/SocialAccountsContext';
 import {useWebviews} from '../contexts/WebviewContext';
@@ -224,12 +225,20 @@ export const ChatView = () => {
 
   return (
       <div className="flex h-full bg-panel border border-border-color overflow-hidden">
-        <ConversationList
-            conversations={filteredConversations}
-            selectedConversationId={selectedConversation?.id}
-            onConversationClick={handleConversationClick}
-            accounts={accounts}
-        />
+        <ResizableSidebar
+          minWidth={200}
+          maxWidth={500}
+          defaultWidth={320}
+          collapsedWidth={60}
+          storageKey="chat-sidebar"
+        >
+          <ConversationList
+              conversations={filteredConversations}
+              selectedConversationId={selectedConversation?.id}
+              onConversationClick={handleConversationClick}
+              accounts={accounts}
+          />
+        </ResizableSidebar>
         <ChatWindow
             conversation={selectedConversation}
             onSendMessage={handleSendMessage}
