@@ -49,7 +49,7 @@ export const AccountWebviewManager = ({ accounts }: AccountWebviewManagerProps) 
         const ref = refs.current[acc.id];
         if (!ref) return;
         try {
-          // Read latest captured request headers for this partition:platform from main (may include cookies, x-bc, etc.)
+          // Read latest captured request headers for this partition from main (may include cookies, x-bc, etc.)
           const hdrRes = await window.electronAPI.headers.get(partitionName);
           const rawHeaders = hdrRes.success && hdrRes.data ? hdrRes.data : {};
           // Filter out forbidden headers for browser fetch (cookie, host, origin, referer, connection, content-length, sec-*, proxy-*)

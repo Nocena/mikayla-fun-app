@@ -6,6 +6,9 @@ import {
   filterAllowedHeaders,
   SendMessageAttachments,
 } from '../services/onlyfansChatsService';
+import {
+  getFanslySendMessageScript,
+} from '../services/fanslyChatsService';
 
 interface UseSendMessageProps {
   accounts: SocialAccount[];
@@ -14,6 +17,7 @@ interface UseSendMessageProps {
 
 /**
  * Hook to send messages for a conversation
+ * Supports both OnlyFans and Fansly platforms
  */
 export const useSendMessage = ({ accounts, webviewRefs }: UseSendMessageProps) => {
   const sendMessage = useCallback(async (
@@ -33,10 +37,9 @@ export const useSendMessage = ({ accounts, webviewRefs }: UseSendMessageProps) =
     if (accountId) {
       account = accounts.find(acc => acc.id === accountId);
     } else {
-      // If no accountId provided, find the first OnlyFans account that matches the modelUserId
+      // If no accountId provided, find the first account that matches the modelUserId
       account = accounts.find(
-        acc => acc.platform.toLowerCase() === 'onlyfans' && 
-        acc.platform_user_id === modelUserId
+        acc => acc.platform_user_id === modelUserId
       );
     }
 
@@ -51,6 +54,8 @@ export const useSendMessage = ({ accounts, webviewRefs }: UseSendMessageProps) =
       return false;
     }
 
+    const platform = account.platform.toLowerCase();
+
     try {
       const partitionName = `persist:${account.platform}-${account.id}`;
       
@@ -64,18 +69,44 @@ export const useSendMessage = ({ accounts, webviewRefs }: UseSendMessageProps) =
         return false;
       }
 
-      // Send message
-      const sendScript = getSendMessageScript(
-        allowedHeaders,
-        account.platform_user_id,
-        chatId,
-        text,
-        options
-      );
+      let sendScript: string;
+
+      if (platform === 'onlyfans') {
+        // OnlyFans flow
+        sendScript = getSendMessageScript(
+          allowedHeaders,
+          account.platform_user_id,
+          chatId,
+          text,
+          options
+        );
+      } else if (platform === 'fansly') {
+        // Fansly flow
+        // Convert attachments if needed (Fansly might have different structure)
+        const fanslyAttachments = options?.attachments?.map(att => {
+          // Map OnlyFans attachment format to Fansly if needed
+          // For now, return empty array as Fansly structure may differ
+          return {};
+        }) || [];
+        
+        sendScript = getFanslySendMessageScript(
+          allowedHeaders,
+          chatId, // groupId
+          text,
+          {
+            attachments: fanslyAttachments,
+            inReplyTo: null, // Can be extended later if needed
+          }
+        );
+      } else {
+        console.error(`[useSendMessage] Unsupported platform: ${platform}`);
+        return false;
+      }
+
       const sendRes = await ref.executeScript(sendScript);
 
       if (!sendRes || !sendRes.ok) {
-        console.error(`[useSendMessage] Failed to send message to chat ${chatId}:`, sendRes);
+        console.error(`[useSendMessage] Failed to send message to ${platform} ${chatId}:`, sendRes);
         return false;
       }
 

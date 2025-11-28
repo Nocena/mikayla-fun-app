@@ -63,7 +63,7 @@ export const usePlatformAuth = ({
 
     const tick = async () => {
       try {
-        // Read captured headers from main process using composite key format: partition:platform
+        // Read captured headers from main process
         const hdrRes = await window.electronAPI.headers.get(partitionName);
         const rawHeaders = (hdrRes.success && hdrRes.data) ? hdrRes.data : {};
 

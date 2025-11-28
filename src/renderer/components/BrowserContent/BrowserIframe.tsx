@@ -26,10 +26,10 @@ export const BrowserIframe = forwardRef<BrowserIframeHandle, BrowserIframeProps>
   const webviewRef = useRef<WebviewTag | null>(null);
   const friendlyPlatformName = platformName || 'this page';
   const CHROME_UA =
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.161 Safari/537.36';
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.161 Safari/537.36';
   const partitionName = explicitPartitionName
-    ? explicitPartitionName
-    : 'persist:default';
+      ? explicitPartitionName
+      : 'persist:default';
 
   const captureIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [status, setStatus] = useState<BrowserStatus>('loading');

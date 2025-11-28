@@ -6,7 +6,12 @@ import {
   filterAllowedHeaders,
   OnlyFansMessagesResponse,
 } from '../services/onlyfansChatsService';
+import {
+  getFanslyMessagesFetchScript,
+  FanslyMessagesResponse,
+} from '../services/fanslyChatsService';
 import { buildMessages } from '../lib/responseHelpers/buildMessages';
+import { buildFanslyMessages } from '../lib/responseHelpers/buildFanslyMessages';
 import { Message } from '../types/chat';
 
 interface UseFetchMessagesProps {
@@ -16,6 +21,7 @@ interface UseFetchMessagesProps {
 
 /**
  * Hook to fetch messages for a conversation
+ * Supports both OnlyFans and Fansly platforms
  */
 export const useFetchMessages = ({ accounts, webviewRefs }: UseFetchMessagesProps) => {
   const fetchMessages = useCallback(async (
@@ -29,10 +35,9 @@ export const useFetchMessages = ({ accounts, webviewRefs }: UseFetchMessagesProp
     if (accountId) {
       account = accounts.find(acc => acc.id === accountId);
     } else {
-      // If no accountId provided, find the first OnlyFans account that matches the modelUserId
+      // If no accountId provided, find the first account that matches the modelUserId
       account = accounts.find(
-        acc => acc.platform.toLowerCase() === 'onlyfans' && 
-        acc.platform_user_id === modelUserId
+        acc => acc.platform_user_id === modelUserId
       );
     }
 
@@ -47,6 +52,8 @@ export const useFetchMessages = ({ accounts, webviewRefs }: UseFetchMessagesProp
       return [];
     }
 
+    const platform = account.platform.toLowerCase();
+
     try {
       const partitionName = `persist:${account.platform}-${account.id}`;
       // Get stored headers for this partition
@@ -60,24 +67,47 @@ export const useFetchMessages = ({ accounts, webviewRefs }: UseFetchMessagesProp
         return [];
       }
 
-      // Fetch messages
-      const messagesScript = getMessagesFetchScript(
-        allowedHeaders,
-        account.platform_user_id,
-        chatId,
-        50 // limit
-      );
-      const messagesRes = await ref.executeScript(messagesScript);
+      let messages: Message[];
 
-      if (!messagesRes || !messagesRes.ok || !messagesRes.data) {
-        console.error(`[useFetchMessages] Failed to fetch messages for chat ${chatId}:`, messagesRes);
+      if (platform === 'onlyfans') {
+        // OnlyFans flow
+        const messagesScript = getMessagesFetchScript(
+          allowedHeaders,
+          account.platform_user_id,
+          chatId,
+          50 // limit
+        );
+        const messagesRes = await ref.executeScript(messagesScript);
+
+        if (!messagesRes || !messagesRes.ok || !messagesRes.data) {
+          console.error(`[useFetchMessages] Failed to fetch messages for chat ${chatId}:`, messagesRes);
+          return [];
+        }
+
+        const messagesData = messagesRes.data as OnlyFansMessagesResponse;
+        messages = buildMessages(messagesData, account.platform_user_id);
+      } else if (platform === 'fansly') {
+        // Fansly flow
+        const messagesScript = getFanslyMessagesFetchScript(
+          allowedHeaders,
+          chatId, // groupId
+          25 // limit
+        );
+        const messagesRes = await ref.executeScript(messagesScript);
+
+        if (!messagesRes || !messagesRes.ok || !messagesRes.data) {
+          console.error(`[useFetchMessages] Failed to fetch messages for group ${chatId}:`, messagesRes);
+          return [];
+        }
+
+        const messagesData = messagesRes.data as FanslyMessagesResponse;
+        messages = buildFanslyMessages(messagesData, account.platform_user_id);
+      } else {
+        console.error(`[useFetchMessages] Unsupported platform: ${platform}`);
         return [];
       }
 
-      const messagesData = messagesRes.data as OnlyFansMessagesResponse;
-      const messages = buildMessages(messagesData, account.platform_user_id);
       console.log("fetch messages", messages)
-
       return messages;
     } catch (error) {
       console.error(`[useFetchMessages] Error fetching messages for chat ${chatId}:`, error);
