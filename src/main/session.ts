@@ -20,38 +20,51 @@ export interface PlatformConfig {
  * Supported platform configurations
  */
 export const PLATFORM_CONFIGS: Record<string, PlatformConfig> = {
-  onlyfans: {
-    id: 'onlyfans',
-    endpointPattern: 'https://onlyfans.com/api2/v2/users/me*',
-  },
   fansly: {
     id: 'fansly',
     endpointPattern: 'https://apiv3.fansly.com/api/v1/account/me*',
   },
+  onlyfans: {
+    id: 'onlyfans',
+    endpointPattern: 'https://onlyfans.com/api2/v2/users/me*',
+  },
+};
+
+const escapeRegex = (pattern: string) =>
+  pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const wildcardPatternToRegex = (pattern: string) => {
+  const escaped = escapeRegex(pattern).replace(/\\\*/g, '.*');
+  return new RegExp(`^${escaped}$`);
 };
 
 /**
- * Registers request header interception for a specific platform
+ * Registers a single request header interception handler for all configured platforms
  */
-function registerPlatformInterceptor(
+function registerPlatformInterceptors(
   ses: Electron.Session,
   partition: string,
-  platform: PlatformConfig
+  platforms: PlatformConfig[]
 ) {
-  const storageKey = `${partition}:${platform.id}`;
-  
-  ses.webRequest.onBeforeSendHeaders(
-    { urls: [platform.endpointPattern] },
-    (details, callback) => {
-      // Persist the latest headers for this partition:platform combination
+  if (!platforms.length) return;
+  const platformMatchers = platforms.map((platform) => ({
+    platform,
+    matcher: wildcardPatternToRegex(platform.endpointPattern),
+  }));
+  const urls = platforms.map((platform) => platform.endpointPattern);
+
+  ses.webRequest.onBeforeSendHeaders({ urls }, (details, callback) => {
+    const matched = platformMatchers.find(({ matcher }) => matcher.test(details.url));
+    if (matched) {
+      const storageKey = `${partition}:${matched.platform.id}`;
       try {
         requestHeadersStore.set(storageKey, { ...details.requestHeaders });
       } catch {
         // Ignore storage errors
       }
-      callback({ requestHeaders: details.requestHeaders });
     }
-  );
+    callback({ requestHeaders: details.requestHeaders });
+  });
 }
 
 /**
@@ -95,9 +108,7 @@ export function configureChromeLikeHeadersForPartition(
     
     // Register interceptors for specified platforms (defaults to all platforms)
     const platformsToRegister = platforms || Object.values(PLATFORM_CONFIGS);
-    platformsToRegister.forEach((platform) => {
-      registerPlatformInterceptor(ses, partition, platform);
-    });
+    registerPlatformInterceptors(ses, partition, platformsToRegister);
     
     configuredPartitions.add(partition);
   } catch (e) {

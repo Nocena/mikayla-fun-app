@@ -33,12 +33,35 @@ export const PLATFORM_AUTH_CONFIG: PlatformAuthConfigMap = {
     isAuthenticated: (data) => data?.isAuth === true || data?.is_auth === true,
   },
   fansly: {
-    authCheckEndpoint: 'https://apiv3.fansly.com/api/v1/account/me?ngsw-bypass=true',
+    authCheckEndpoint: 'https://apiv3.fansly.com/api/v1/account/me',
     authCheckMethod: 'GET',
-    extractUserId: (data) => (data?.id ? String(data.id) : null),
-    extractUsername: (data) => data?.username || data?.displayName || null,
-    extractAvatar: (data) => data?.avatarUrl || data?.avatar || null,
-    isAuthenticated: (data) => !!data?.id && !data?.error,
+    extractUserId: (data) => {
+      // Fansly response structure: { success: true, response: { account: { id: "...", ... } } }
+      const account = data?.response?.account;
+      return account?.id ? String(account.id) : null;
+    },
+    extractUsername: (data) => {
+      // Fansly response structure: { success: true, response: { account: { username: "...", ... } } }
+      const account = data?.response?.account;
+      return account?.username || account?.displayName || null;
+    },
+    extractAvatar: (data) => {
+      // Fansly response structure: { success: true, response: { account: { avatar: { locations: [{ location: "..." }] } } } } }
+      const account = data?.response?.account;
+      if (!account) return null;
+      
+      // Fansly avatar is an object with locations array
+      if (account.avatar?.locations && Array.isArray(account.avatar.locations) && account.avatar.locations.length > 0) {
+        return account.avatar.locations[0].location || null;
+      }
+      
+      // Fallback to simple string fields if avatar object structure is different
+      return account?.avatarUrl || account?.profileImageUrl || null;
+    },
+    isAuthenticated: (data) => {
+      // Fansly returns { success: true, response: { account: {...} } } when authenticated
+      return data?.success === true && data?.response?.account != null;
+    },
   },
   patreon: {
     authCheckEndpoint: 'https://www.patreon.com/api/current_user',

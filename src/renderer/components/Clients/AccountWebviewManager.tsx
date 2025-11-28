@@ -57,6 +57,7 @@ export const AccountWebviewManager = ({ accounts }: AccountWebviewManagerProps) 
           const rawHeaders = hdrRes.success && hdrRes.data ? hdrRes.data : {};
           // Filter out forbidden headers for browser fetch (cookie, host, origin, referer, connection, content-length, sec-*, proxy-*)
           const allowedHeaders = filterAllowedHeaders(rawHeaders);
+          console.log(`on ${partitionName}`, allowedHeaders)
 
           let meRes = null;
           if (Object.keys(allowedHeaders).length > 0) {
@@ -78,6 +79,7 @@ export const AccountWebviewManager = ({ accounts }: AccountWebviewManagerProps) 
                 }
               })();
             `);
+            console.log(`${partitionName} meRes result = `, meRes)
           }
           if (meRes && meRes.ok && meRes.data) {
             const isAuth = config.checkAuth(meRes.data);

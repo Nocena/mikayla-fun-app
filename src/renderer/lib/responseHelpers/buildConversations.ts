@@ -38,7 +38,8 @@ export function buildConversations(
             id: msg.id.toString(),
             sender,
             content: msg.text || "",
-            timestamp: msg.createdAt
+            timestamp: msg.createdAt,
+            price: 0,
         };
 
         // Final conversation - use chatId as the conversation id for fetching messages

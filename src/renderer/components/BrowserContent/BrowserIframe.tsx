@@ -17,20 +17,19 @@ interface BrowserIframeProps {
   zoomFactor?: number;
   onStatusChange?: (status: BrowserStatus, payload?: { message?: string }) => void;
   platformName?: string;
-  userId?: string;
   partitionName?: string;
 }
 
 
 export const BrowserIframe = forwardRef<BrowserIframeHandle, BrowserIframeProps>(
-({ url, zoomFactor = 1, onStatusChange, platformName, userId, partitionName: explicitPartitionName }, ref) => {
+({ url, zoomFactor = 1, onStatusChange, platformName, partitionName: explicitPartitionName }, ref) => {
   const webviewRef = useRef<WebviewTag | null>(null);
   const friendlyPlatformName = platformName || 'this page';
   const CHROME_UA =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.161 Safari/537.36';
   const partitionName = explicitPartitionName
     ? explicitPartitionName
-    : (platformName && userId ? `persist:${platformName}-${userId}` : 'persist:default');
+    : 'persist:default';
 
   const captureIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [status, setStatus] = useState<BrowserStatus>('loading');
@@ -130,6 +129,7 @@ export const BrowserIframe = forwardRef<BrowserIframeHandle, BrowserIframeProps>
 
     // Ensure the target partition is configured in the main process before traffic
     try {
+      console.log(`added interceptor to ${partitionName}`)
       // @ts-expect-error: preload typing
       window.electronAPI?.session?.configureChromeLike?.(partitionName, CHROME_UA);
     } catch {}
