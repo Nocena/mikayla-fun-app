@@ -33,7 +33,7 @@ export const PLATFORM_AUTH_CONFIG: PlatformAuthConfigMap = {
     isAuthenticated: (data) => data?.isAuth === true || data?.is_auth === true,
   },
   fansly: {
-    authCheckEndpoint: 'https://fansly.com/api/v1/account/me',
+    authCheckEndpoint: 'https://apiv3.fansly.com/api/v1/account/me?ngsw-bypass=true',
     authCheckMethod: 'GET',
     extractUserId: (data) => (data?.id ? String(data.id) : null),
     extractUsername: (data) => data?.username || data?.displayName || null,

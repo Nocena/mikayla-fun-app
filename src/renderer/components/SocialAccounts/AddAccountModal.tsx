@@ -46,7 +46,7 @@ export const AddAccountModal = ({
     name: platform.name,
     color: platform.colorScheme,
     logo: platformLogoMap[platform.key],
-    isEnabled: platform.key === 'onlyfans',
+    isEnabled: platform.key === 'onlyfans' || platform.key === 'fansly',
   }));
 
   const handleConnect = async (platformName: string, platformKey: string) => {

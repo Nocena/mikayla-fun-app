@@ -6,6 +6,7 @@ import { registerStorageIpcHandlers } from './ipc/storage.js';
 import { registerScriptsIpcHandlers } from './ipc/scripts.js';
 import { registerHeadersIpcHandlers } from './ipc/headers.js';
 import { registerOnlyfansIpcHandlers } from './ipc/onlyfans.js';
+import { registerFanslyIpcHandlers } from './ipc/fansly.js';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -18,6 +19,7 @@ app.whenReady().then(() => {
   registerScriptsIpcHandlers();
   registerHeadersIpcHandlers();
   registerOnlyfansIpcHandlers();
+  registerFanslyIpcHandlers();
 
   mainWindow = createMainWindow();
 

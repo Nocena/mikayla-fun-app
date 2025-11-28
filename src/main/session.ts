@@ -6,13 +6,72 @@ export const CHROME_UA =
 
 const configuredPartitions = new Set<string>();
 
-export function configureChromeLikeHeadersForPartition(partition: string, uaOverride?: string) {
+/**
+ * Platform configuration for request header interception
+ */
+export interface PlatformConfig {
+  /** Platform identifier (e.g., 'onlyfans', 'fansly') */
+  id: string;
+  /** URL pattern to intercept (supports wildcards) */
+  endpointPattern: string;
+}
+
+/**
+ * Supported platform configurations
+ */
+export const PLATFORM_CONFIGS: Record<string, PlatformConfig> = {
+  onlyfans: {
+    id: 'onlyfans',
+    endpointPattern: 'https://onlyfans.com/api2/v2/users/me*',
+  },
+  fansly: {
+    id: 'fansly',
+    endpointPattern: 'https://apiv3.fansly.com/api/v1/account/me*',
+  },
+};
+
+/**
+ * Registers request header interception for a specific platform
+ */
+function registerPlatformInterceptor(
+  ses: Electron.Session,
+  partition: string,
+  platform: PlatformConfig
+) {
+  const storageKey = `${partition}:${platform.id}`;
+  
+  ses.webRequest.onBeforeSendHeaders(
+    { urls: [platform.endpointPattern] },
+    (details, callback) => {
+      // Persist the latest headers for this partition:platform combination
+      try {
+        requestHeadersStore.set(storageKey, { ...details.requestHeaders });
+      } catch {
+        // Ignore storage errors
+      }
+      callback({ requestHeaders: details.requestHeaders });
+    }
+  );
+}
+
+/**
+ * Configures Chrome-like headers and platform interceptors for a partition
+ */
+export function configureChromeLikeHeadersForPartition(
+  partition: string,
+  uaOverride?: string,
+  platforms?: PlatformConfig[]
+) {
   if (!partition) return;
   if (configuredPartitions.has(partition)) return;
+  
   const ses = session.fromPartition(partition);
   const ua = uaOverride || CHROME_UA;
+  
   try {
     ses.setUserAgent(ua);
+    
+    // Configure Chrome-like headers for all requests
     ses.webRequest.onBeforeSendHeaders((details, callback) => {
       const headers = { ...details.requestHeaders };
       headers['User-Agent'] = ua;
@@ -33,20 +92,16 @@ export function configureChromeLikeHeadersForPartition(partition: string, uaOver
       }
       callback({ requestHeaders: headers });
     });
+    
+    // Register interceptors for specified platforms (defaults to all platforms)
+    const platformsToRegister = platforms || Object.values(PLATFORM_CONFIGS);
+    platformsToRegister.forEach((platform) => {
+      registerPlatformInterceptor(ses, partition, platform);
+    });
+    
     configuredPartitions.add(partition);
-
-    ses.webRequest.onBeforeSendHeaders(
-      { urls: ["https://onlyfans.com/api2/v2/users/me*"] },
-      (details, callback) => {
-        // Persist the latest headers for this partition
-        try {
-          requestHeadersStore.set(partition, { ...details.requestHeaders });
-        } catch {}
-        callback({ requestHeaders: details.requestHeaders });
-      }
-    );
   } catch (e) {
-    // swallow
+    // Ignore configuration errors
   }
 }
 
@@ -64,5 +119,3 @@ export function registerSessionIpcHandlers() {
     }
   });
 }
-
-

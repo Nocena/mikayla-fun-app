@@ -49,11 +49,11 @@ export const useFetchMessages = ({ accounts, webviewRefs }: UseFetchMessagesProp
 
     try {
       const partitionName = `persist:${account.platform}-${account.id}`;
-      
       // Get stored headers for this partition
       const hdrRes = await window.electronAPI.headers.get(partitionName);
       const rawHeaders = hdrRes.success && hdrRes.data ? hdrRes.data : {};
       const allowedHeaders = filterAllowedHeaders(rawHeaders);
+      console.log("fetch Messages", partitionName, allowedHeaders)
 
       if (Object.keys(allowedHeaders).length === 0) {
         console.error(`[useFetchMessages] No headers found for ${partitionName}`);

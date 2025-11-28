@@ -10,15 +10,15 @@ function getPlatformHeaders(partition: string, platformId: string) {
   return requestHeadersStore.get(storageKey);
 }
 
-export function registerOnlyfansIpcHandlers() {
-  // Poll OnlyFans /api2/v2/users/me with the latest headers captured for the given partition
-  ipcMain.handle('of:getMe', async (_event, partition: string) => {
+export function registerFanslyIpcHandlers() {
+  // Poll Fansly /api/v1/account/me with the latest headers captured for the given partition
+  ipcMain.handle('fansly:getMe', async (_event, partition: string) => {
     try {
-      const headers = getPlatformHeaders(partition, 'onlyfans');
+      const headers = getPlatformHeaders(partition, 'fansly');
       if (!headers) {
         return { success: false, error: 'No headers for partition yet' };
       }
-      const res = await fetch('https://onlyfans.com/api2/v2/users/me', {
+      const res = await fetch('https://apiv3.fansly.com/api/v1/account/me', {
         method: 'GET',
         headers: {
           // Pass through captured request headers (includes cookies, UA, CH, etc.)
@@ -38,5 +38,4 @@ export function registerOnlyfansIpcHandlers() {
     }
   });
 }
-
 

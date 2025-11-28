@@ -25,17 +25,35 @@ export const AccountWebviewManager = ({ accounts }: AccountWebviewManagerProps) 
     accounts.forEach((acc) => setStatus(acc.id, 'syncing'));
 
     accounts.forEach((acc) => {
-      // For now only handle OnlyFans; extend as needed for other platforms
-      if (acc.platform.toLowerCase() !== 'onlyfans') return;
+      const platform = acc.platform.toLowerCase();
+      // Only handle supported platforms (OnlyFans and Fansly)
+      if (platform !== 'onlyfans' && platform !== 'fansly') return;
 
       const partitionName = `persist:${acc.platform}-${acc.id}`;
+      // Use composite key format: partition:platform for header storage
+      const headerStorageKey = `${partitionName}:${platform}`;
+
+      // Platform-specific configuration
+      const platformConfig = {
+        onlyfans: {
+          endpoint: 'https://onlyfans.com/api2/v2/users/me',
+          checkAuth: (data: any) => data?.isAuth === true || data?.is_auth === true,
+        },
+        fansly: {
+          endpoint: 'https://apiv3.fansly.com/api/v1/account/me',
+          checkAuth: (data: any) => data?.success === true && data?.response?.account != null,
+        },
+      };
+
+      const config = platformConfig[platform as keyof typeof platformConfig];
+      if (!config) return;
 
       const tick = async () => {
         const ref = refs.current[acc.id];
         if (!ref) return;
         try {
-          // Read latest captured request headers for this partition from main (may include cookies, x-bc, etc.)
-          const hdrRes = await window.electronAPI.headers.get(partitionName);
+          // Read latest captured request headers for this partition:platform from main (may include cookies, x-bc, etc.)
+          const hdrRes = await window.electronAPI.headers.get(headerStorageKey);
           const rawHeaders = hdrRes.success && hdrRes.data ? hdrRes.data : {};
           // Filter out forbidden headers for browser fetch (cookie, host, origin, referer, connection, content-length, sec-*, proxy-*)
           const allowedHeaders = filterAllowedHeaders(rawHeaders);
@@ -46,7 +64,7 @@ export const AccountWebviewManager = ({ accounts }: AccountWebviewManagerProps) 
               (async () => {
                 try {
                   const headers = ${JSON.stringify(allowedHeaders)};
-                  const res = await fetch('https://onlyfans.com/api2/v2/users/me', {
+                  const res = await fetch('${config.endpoint}', {
                     method: 'GET',
                     credentials: 'include',
                     headers
@@ -62,7 +80,7 @@ export const AccountWebviewManager = ({ accounts }: AccountWebviewManagerProps) 
             `);
           }
           if (meRes && meRes.ok && meRes.data) {
-            const isAuth = meRes.data.isAuth === true || meRes.data.is_auth === true;
+            const isAuth = config.checkAuth(meRes.data);
             setStatus(acc.id, isAuth ? 'synced' : 'lost');
           } else {
             setStatus(acc.id, 'lost');

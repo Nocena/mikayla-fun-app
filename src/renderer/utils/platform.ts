@@ -4,7 +4,7 @@ import fanslyLogo from '../assets/fansly.svg';
 import patreonLogo from '../assets/patreon-logo.png';
 import heroheroLogo from '../assets/herohero.svg';
 
-type CreatorPlatformKey = 'onlyfans' | 'fansly' | 'patreon' | 'herohero';
+export type CreatorPlatformKey = 'onlyfans' | 'fansly' | 'patreon' | 'herohero';
 
 export type CreatorPlatformMeta = {
   key: CreatorPlatformKey;
