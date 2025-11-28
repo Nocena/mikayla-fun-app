@@ -41,6 +41,7 @@ export function buildConversations(
             content: msg.text || "",
             timestamp: msg.createdAt,
             price: 0,
+            isFree: true,
         };
 
         // Final conversation - use chatId as the conversation id for fetching messages
