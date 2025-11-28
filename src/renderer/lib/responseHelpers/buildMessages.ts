@@ -58,7 +58,7 @@ export function buildMessages(
                 price: typeof entry.price === 'number' ? entry.price : 0,
                 canPurchase: typeof entry.canPurchase === 'boolean' ? entry.canPurchase : undefined,
                 lockedText: typeof entry.lockedText === 'boolean' ? entry.lockedText : undefined,
-                isFree: typeof entry.isFree === 'boolean' ? entry.isFree : undefined,
+                isFree: typeof entry.isFree === 'boolean' ? entry.isFree : true,
             };
 
             return message;

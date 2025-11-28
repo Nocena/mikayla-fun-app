@@ -64,9 +64,7 @@ export const usePlatformAuth = ({
     const tick = async () => {
       try {
         // Read captured headers from main process using composite key format: partition:platform
-        const platform = pendingAccount.platform.toLowerCase();
-        const headerStorageKey = `${partitionName}:${platform}`;
-        const hdrRes = await window.electronAPI.headers.get(headerStorageKey);
+        const hdrRes = await window.electronAPI.headers.get(partitionName);
         const rawHeaders = (hdrRes.success && hdrRes.data) ? hdrRes.data : {};
 
         // Filter allowed headers

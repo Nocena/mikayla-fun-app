@@ -30,9 +30,6 @@ export const AccountWebviewManager = ({ accounts }: AccountWebviewManagerProps) 
       if (platform !== 'onlyfans' && platform !== 'fansly') return;
 
       const partitionName = `persist:${acc.platform}-${acc.id}`;
-      // Use composite key format: partition:platform for header storage
-      const headerStorageKey = `${partitionName}:${platform}`;
-
       // Platform-specific configuration
       const platformConfig = {
         onlyfans: {
@@ -53,7 +50,7 @@ export const AccountWebviewManager = ({ accounts }: AccountWebviewManagerProps) 
         if (!ref) return;
         try {
           // Read latest captured request headers for this partition:platform from main (may include cookies, x-bc, etc.)
-          const hdrRes = await window.electronAPI.headers.get(headerStorageKey);
+          const hdrRes = await window.electronAPI.headers.get(partitionName);
           const rawHeaders = hdrRes.success && hdrRes.data ? hdrRes.data : {};
           // Filter out forbidden headers for browser fetch (cookie, host, origin, referer, connection, content-length, sec-*, proxy-*)
           const allowedHeaders = filterAllowedHeaders(rawHeaders);

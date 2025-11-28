@@ -30,6 +30,7 @@ export function buildConversations(
             isOnline: true, // OF does not give exact online status → default true
             totalSpent: 0,  // Optional placeholder
             lastSeen: msg.createdAt,
+
             tags: []
         };
 

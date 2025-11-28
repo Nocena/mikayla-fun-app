@@ -5,16 +5,15 @@ import { requestHeadersStore } from '../stores.js';
 /**
  * Gets request headers for a specific platform and partition
  */
-function getPlatformHeaders(partition: string, platformId: string) {
-  const storageKey = `${partition}:${platformId}`;
-  return requestHeadersStore.get(storageKey);
+function getPlatformHeaders(partition: string) {
+  return requestHeadersStore.get(partition);
 }
 
 export function registerOnlyfansIpcHandlers() {
   // Poll OnlyFans /api2/v2/users/me with the latest headers captured for the given partition
   ipcMain.handle('of:getMe', async (_event, partition: string) => {
     try {
-      const headers = getPlatformHeaders(partition, 'onlyfans');
+      const headers = getPlatformHeaders(partition);
       if (!headers) {
         return { success: false, error: 'No headers for partition yet' };
       }

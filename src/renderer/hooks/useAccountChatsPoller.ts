@@ -93,7 +93,7 @@ export const useAccountChatsPoller = ({ accounts, webviewRefs }: UseAccountChats
       };
 
       // Start polling every 30 seconds (adjust interval as needed)
-      const timer = setInterval(pollChatsAndUsers, 30000);
+      const timer = setInterval(pollChatsAndUsers, 8000);
       timers.push(timer);
 
       // Initial call after a short delay to let the webview settle

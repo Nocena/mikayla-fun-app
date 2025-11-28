@@ -83,13 +83,13 @@ export const BrowserIframe = forwardRef<BrowserIframeHandle, BrowserIframeProps>
           results.push({ id: s.id, result });
           try {
             // Persist each result keyed by partitionName + script id
-            await window.electronAPI.scripts.append(`${partitionName}:${s.id}`, { result, at: Date.now() });
+            await window.electronAPI.scripts.append(partitionName, { result, at: Date.now() });
           } catch {}
         } catch (e: any) {
           const error = String(e?.message ?? e);
           results.push({ id: s.id, error });
           try {
-            await window.electronAPI.scripts.append(`${partitionName}:${s.id}`, { error, at: Date.now() });
+            await window.electronAPI.scripts.append(partitionName, { error, at: Date.now() });
           } catch {}
         }
       }

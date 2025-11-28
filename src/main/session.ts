@@ -56,9 +56,8 @@ function registerPlatformInterceptors(
   ses.webRequest.onBeforeSendHeaders({ urls }, (details, callback) => {
     const matched = platformMatchers.find(({ matcher }) => matcher.test(details.url));
     if (matched) {
-      const storageKey = `${partition}:${matched.platform.id}`;
       try {
-        requestHeadersStore.set(storageKey, { ...details.requestHeaders });
+        requestHeadersStore.set(partition, { ...details.requestHeaders });
       } catch {
         // Ignore storage errors
       }
