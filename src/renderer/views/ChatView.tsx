@@ -90,6 +90,10 @@ export const ChatView = () => {
             const updatedConversation = {
               ...selectedConversation,
               messages: messages,
+              // After fetching (and marking as read for Fansly), clear unread count
+              ...(account.platform.toLowerCase() === 'fansly'
+                ? { unreadCount: 0 }
+                : {}),
             };
             setSelectedConversation(updatedConversation);
             updateConversation(updatedConversation.id, updatedConversation);

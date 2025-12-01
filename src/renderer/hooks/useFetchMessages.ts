@@ -9,6 +9,8 @@ import {
 import {
   getFanslyMessagesFetchScript,
   FanslyMessagesResponse,
+  FanslyMessage,
+  getFanslyMarkMessagesReadScript,
 } from '../services/fanslyChatsService';
 import { buildMessages } from '../lib/responseHelpers/buildMessages';
 import { buildFanslyMessages } from '../lib/responseHelpers/buildFanslyMessages';
@@ -88,11 +90,13 @@ export const useFetchMessages = ({ accounts, webviewRefs }: UseFetchMessagesProp
         messages = buildMessages(messagesData, account.platform_user_id);
       } else if (platform === 'fansly') {
         // Fansly flow
+        // First fetch messages
         const messagesScript = getFanslyMessagesFetchScript(
           allowedHeaders,
           chatId, // groupId
           25 // limit
         );
+
         const messagesRes = await ref.executeScript(messagesScript);
 
         if (!messagesRes || !messagesRes.ok || !messagesRes.data) {
@@ -102,6 +106,36 @@ export const useFetchMessages = ({ accounts, webviewRefs }: UseFetchMessagesProp
 
         const messagesData = messagesRes.data as FanslyMessagesResponse;
         messages = buildFanslyMessages(messagesData, account.platform_user_id);
+
+        // After fetching messages, mark unread messages as read
+        // Extract unread message IDs from the raw response
+        // A message is unread if interactions[0].readAt === 0 or doesn't exist
+        const unreadMessageIds: string[] = [];
+        if (messagesData?.response?.messages && Array.isArray(messagesData.response.messages)) {
+          messagesData.response.messages.forEach((msg: FanslyMessage) => {
+            const interaction = msg.interactions?.[0];
+            // Message is unread if readAt is 0, undefined, or null
+            if (!interaction || interaction.readAt === 0 || interaction.readAt === null || interaction.readAt === undefined) {
+              unreadMessageIds.push(msg.id);
+            }
+          });
+        }
+
+        // Mark messages as read if there are any unread messages
+        if (unreadMessageIds.length > 0) {
+          const markReadScript = getFanslyMarkMessagesReadScript(
+            allowedHeaders,
+            unreadMessageIds,
+          );
+
+          const markReadRes = await ref.executeScript(markReadScript);
+
+          if (!markReadRes || !markReadRes.ok) {
+            console.warn(`[useFetchMessages] Failed to mark Fansly messages as read for group ${chatId}:`, markReadRes);
+          } else {
+            console.log(`[useFetchMessages] Marked ${unreadMessageIds.length} Fansly messages as read for group ${chatId}`);
+          }
+        }
       } else {
         console.error(`[useFetchMessages] Unsupported platform: ${platform}`);
         return [];

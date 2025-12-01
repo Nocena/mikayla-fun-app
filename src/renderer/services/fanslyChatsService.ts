@@ -127,6 +127,44 @@ export interface FanslyMessagesResponse {
 }
 
 /**
+ * Generates JavaScript code to mark Fansly messages as read
+ * by calling the message ack endpoint with unread message IDs.
+ */
+export const getFanslyMarkMessagesReadScript = (
+  headers: Record<string, string>,
+  messageIds: string[],
+): string => {
+  const subUrl = `/api/v1/message/ack?ngsw-bypass=true`;
+
+  return `
+    (async () => {
+      try {
+        const headers = ${JSON.stringify(headers)};
+        const payload = {
+          messageIds: ${JSON.stringify(messageIds)},
+          type: 2
+        };
+        const res = await fetch('${baseUrl}${subUrl}', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            ...headers,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload)
+        });
+        const text = await res.text();
+        let data = null;
+        try { data = JSON.parse(text); } catch { data = { raw: text }; }
+        return { ok: res.ok, status: res.status, data };
+      } catch (e) {
+        return { ok: false, error: String(e) };
+      }
+    })();
+  `;
+};
+
+/**
  * Generates JavaScript code to fetch messages from Fansly API
  */
 export const getFanslyMessagesFetchScript = (
