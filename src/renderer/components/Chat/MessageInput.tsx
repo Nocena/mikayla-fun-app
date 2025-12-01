@@ -42,6 +42,7 @@ interface MessageInputProps {
   socialAccountId?: string;
   conversationId?: string; // New prop
   fan: Fan;
+  onInputFocus?: () => void;
   onAgentAnalysisStart: () => void;
   onAgentAnalysisComplete: (insights: AgentOrchestratorOutput) => void;
 }
@@ -53,6 +54,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   socialAccountId,
   conversationId, // Destructure
   fan,
+  onInputFocus,
   onAgentAnalysisStart,
   onAgentAnalysisComplete
 }) => {
@@ -375,6 +377,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
+          onFocus={onInputFocus}
           placeholder="Type your message..."
           rows={2}
           disabled={sendingMessage}

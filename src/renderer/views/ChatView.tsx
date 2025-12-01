@@ -1,4 +1,4 @@
-import {useState, useEffect} from 'react';
+import {useState, useEffect, useCallback} from 'react';
 import {Conversation, Message} from '../types/chat';
 import {ConversationList} from "../components/Chat/ConversationList";
 import {ChatWindow} from "../components/Chat/ChatWindow";
@@ -8,6 +8,7 @@ import {useSocialAccounts} from '../contexts/SocialAccountsContext';
 import {useWebviews} from '../contexts/WebviewContext';
 import {useFetchMessages} from '../hooks/useFetchMessages';
 import {useSendMessage} from '../hooks/useSendMessage';
+import {useMarkAsRead} from '../hooks/useMarkAsRead';
 import {toast} from '../lib/toast';
 
 export const ChatView = () => {
@@ -16,6 +17,7 @@ export const ChatView = () => {
   const { webviewRefs } = useWebviews();
   const { fetchMessages } = useFetchMessages({ accounts, webviewRefs });
   const { sendMessage } = useSendMessage({ accounts, webviewRefs });
+  const { markAsRead } = useMarkAsRead({ accounts, webviewRefs });
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
@@ -119,6 +121,22 @@ export const ChatView = () => {
       window.history.pushState({ conversationId }, '', url.toString());
     }
   };
+
+  // Handle marking messages as read (for Fansly conversations)
+  const handleMarkAsRead = useCallback(async () => {
+    if (!selectedConversation) return;
+    
+    const success = await markAsRead(selectedConversation);
+    if (success) {
+      // Update conversation unreadCount to 0
+      const updatedConversation = {
+        ...selectedConversation,
+        unreadCount: 0,
+      };
+      setSelectedConversation(updatedConversation);
+      updateConversation(updatedConversation.id, updatedConversation);
+    }
+  }, [selectedConversation, markAsRead, updateConversation]);
 
   const handleSendMessage = async (
     content: string,
@@ -248,6 +266,7 @@ export const ChatView = () => {
             onSendMessage={handleSendMessage}
             sendingMessage={sendingMessage}
             isLoadingMessages={loadingMessages}
+            onMarkAsRead={handleMarkAsRead}
         />
       </div>
   );

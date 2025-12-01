@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Message } from './Message';
 import { MessageInput } from './MessageInput';
 import { Conversation, Message as ChatMessage } from "../../types/chat";
@@ -38,6 +38,7 @@ interface ChatWindowProps {
   ) => void;
   sendingMessage?: boolean;
   isLoadingMessages?: boolean;
+  onMarkAsRead?: () => void;
 }
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({ 
@@ -45,6 +46,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   onSendMessage, 
   sendingMessage = false,
   isLoadingMessages = false,
+  onMarkAsRead,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [agentInsights, setAgentInsights] = useState<AgentOrchestratorOutput | null>(null);
@@ -68,6 +70,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const { accounts } = useSocialAccounts();
   const { webviewRefs } = useWebviews();
   const { fetchPaymentMethodsVat } = usePaymentMethodsVat({ accounts, webviewRefs });
+
+  // Check if conversation is Fansly and has unread messages
+  const shouldMarkAsRead = useCallback(() => {
+    if (!conversation || !onMarkAsRead || conversation.unreadCount === 0) {
+      return false;
+    }
+    const account = conversation.accountId 
+      ? accounts.find(acc => acc.id === conversation.accountId)
+      : accounts.find(acc => acc.platform.toLowerCase() === 'fansly');
+    return account?.platform.toLowerCase() === 'fansly';
+  }, [conversation, accounts, onMarkAsRead]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -201,7 +214,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 relative">
+        <div 
+          className="flex-1 overflow-y-auto p-6 relative"
+          onClick={() => {
+            // Mark as read when clicking on messages area (only for Fansly with unread messages)
+            if (shouldMarkAsRead()) {
+              onMarkAsRead();
+            }
+          }}
+        >
           {isLoadingMessages && (
             <div className="absolute inset-0 flex items-center justify-center bg-panel/70 z-10">
               <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
@@ -231,6 +252,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             socialAccountId={conversation.accountId}
             conversationId={conversation.id} // Pass conversation ID
             fan={conversation.fan}
+            onInputFocus={() => {
+              // Mark as read when input is focused (only for Fansly with unread messages)
+              if (shouldMarkAsRead()) {
+                onMarkAsRead();
+              }
+            }}
             onAgentAnalysisStart={() => {
               setIsAgentLoading(true);
               if (!isSidebarOpen) setIsSidebarOpen(true); // Auto-open on analysis
