@@ -1,5 +1,6 @@
 import React from 'react';
 import { OnlyFansPaymentCard, OnlyFansPaymentMethodsVatResponse } from '../../services/onlyfansPaymentsService';
+import { toast } from '../../lib/toast';
 
 interface PurchaseConfirmModalProps {
   isOpen: boolean;
@@ -149,6 +150,18 @@ export const PurchaseConfirmModal: React.FC<PurchaseConfirmModalProps> = ({
                 : 'text-primary hover:text-primary/80'
             }`}
             disabled={isLoading || !!error || !canConfirm}
+            onClick={() => {
+              if (!isLoading && !error && canConfirm) {
+                toast({
+                  title: 'Payment Processing',
+                  description: 'To complete payments, please navigate to the Clients view where you can manage all transactions directly.',
+                  status: 'info',
+                  duration: 5000,
+                  isClosable: true,
+                });
+                onClose();
+              }
+            }}
           >
             Pay
           </button>
