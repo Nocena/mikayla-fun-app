@@ -3,6 +3,7 @@ import {Conversation, Message} from '../types/chat';
 import {ConversationList} from "../components/Chat/ConversationList";
 import {ChatWindow} from "../components/Chat/ChatWindow";
 import {ResizableSidebar} from "../components/Chat/ResizableSidebar";
+import {ChatEmptyState} from "../components/Chat/ChatEmptyState";
 import {useConversations} from '../contexts/ConversationsContext';
 import {useSocialAccounts} from '../contexts/SocialAccountsContext';
 import {useWebviews} from '../contexts/WebviewContext';
@@ -245,29 +246,38 @@ export const ChatView = () => {
   };
 
 
+  // Show empty state when there are no conversations
+  const hasNoConversations = filteredConversations.length === 0;
+
   return (
       <div className="flex h-full bg-panel border border-border-color overflow-hidden">
-        <ResizableSidebar
-          minWidth={200}
-          maxWidth={500}
-          defaultWidth={320}
-          collapsedWidth={60}
-          storageKey="chat-sidebar"
-        >
-          <ConversationList
-              conversations={filteredConversations}
-              selectedConversationId={selectedConversation?.id}
-              onConversationClick={handleConversationClick}
-              accounts={accounts}
-          />
-        </ResizableSidebar>
-        <ChatWindow
-            conversation={selectedConversation}
-            onSendMessage={handleSendMessage}
-            sendingMessage={sendingMessage}
-            isLoadingMessages={loadingMessages}
-            onMarkAsRead={handleMarkAsRead}
-        />
+        {hasNoConversations ? (
+          <ChatEmptyState />
+        ) : (
+          <>
+            <ResizableSidebar
+              minWidth={200}
+              maxWidth={500}
+              defaultWidth={320}
+              collapsedWidth={60}
+              storageKey="chat-sidebar"
+            >
+              <ConversationList
+                  conversations={filteredConversations}
+                  selectedConversationId={selectedConversation?.id}
+                  onConversationClick={handleConversationClick}
+                  accounts={accounts}
+              />
+            </ResizableSidebar>
+            <ChatWindow
+                conversation={selectedConversation}
+                onSendMessage={handleSendMessage}
+                sendingMessage={sendingMessage}
+                isLoadingMessages={loadingMessages}
+                onMarkAsRead={handleMarkAsRead}
+            />
+          </>
+        )}
       </div>
   );
 };
