@@ -58,9 +58,24 @@ export const ResizableSidebar: React.FC<ResizableSidebarProps> = ({
     if (!isResizing || !sidebarRef.current) return;
 
     const newWidth = e.clientX;
-    const clampedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
-    setWidth(clampedWidth);
-  }, [isResizing, minWidth, maxWidth]);
+    
+    // Auto-collapse threshold: if dragged below this width, collapse automatically
+    // Use a threshold between collapsedWidth and minWidth
+    const collapseThreshold = Math.max(collapsedWidth + 40, minWidth * 0.6);
+    
+    if (newWidth < collapseThreshold) {
+      // Auto-collapse when dragged too narrow
+      setIsCollapsed(true);
+    } else {
+      // Normal resize within bounds
+      const clampedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+      setWidth(clampedWidth);
+      // Auto-expand when dragging wider from collapsed state
+      if (isCollapsed && clampedWidth >= collapseThreshold) {
+        setIsCollapsed(false);
+      }
+    }
+  }, [isResizing, minWidth, maxWidth, collapsedWidth, isCollapsed]);
 
   const handleMouseUp = useCallback(() => {
     setIsResizing(false);
@@ -121,18 +136,18 @@ export const ResizableSidebar: React.FC<ResizableSidebarProps> = ({
           })}
         </div>
 
-        {/* Resize Handle - only show when not collapsed */}
-        {!isCollapsed && (
-          <div
-            ref={resizeHandleRef}
-            onMouseDown={handleMouseDown}
-            className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/50 transition-colors z-10 group"
-            style={{ cursor: isResizing ? 'col-resize' : 'col-resize' }}
-          >
-            {/* Visual indicator on hover */}
-            <div className="absolute top-0 right-0 w-0.5 h-full bg-transparent group-hover:bg-primary transition-colors" />
-          </div>
-        )}
+        {/* Resize Handle - always show, but thinner when collapsed */}
+        <div
+          ref={resizeHandleRef}
+          onMouseDown={handleMouseDown}
+          className={`absolute top-0 right-0 h-full cursor-col-resize hover:bg-primary/50 transition-colors z-10 group ${
+            isCollapsed ? 'w-0.5' : 'w-1'
+          }`}
+          style={{ cursor: isResizing ? 'col-resize' : 'col-resize' }}
+        >
+          {/* Visual indicator on hover */}
+          <div className="absolute top-0 right-0 w-0.5 h-full bg-transparent group-hover:bg-primary transition-colors" />
+        </div>
       </div>
     </>
   );
