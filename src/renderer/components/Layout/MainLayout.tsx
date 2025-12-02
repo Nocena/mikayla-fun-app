@@ -34,7 +34,7 @@ export const MainLayout = ({ children, activeView, onViewChange }: MainLayoutPro
                 minH="100vh"
                 position="relative"
             >
-                {!isFullWidthView && <Header onViewChange={onViewChange} />}
+                {!isFullWidthView && !isMobile && <Header onViewChange={onViewChange} />}
                 {isFullWidthView ? (
                     <Box h="100vh" position="absolute" top={0} left={0} right={0} bottom={0}>
                         {children}

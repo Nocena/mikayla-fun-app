@@ -18,6 +18,10 @@ import {
   DrawerCloseButton,
   Image,
   Tooltip,
+  HStack,
+  Badge,
+  Checkbox,
+  Divider,
 } from '@chakra-ui/react';
 import {
   MessageSquare,
@@ -30,8 +34,15 @@ import {
   ChevronDown,
   MenuIcon,
   Globe,
+  RefreshCw,
+  Moon,
+  Sun,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSocialAccounts } from '../../contexts/SocialAccountsContext';
+import { getPlatformLogo } from '../../utils/platform';
+import { supabase } from '../../lib/supabase';
+import { useState, useEffect } from 'react';
 import logoImage from '../../assets/logo.png';
 
 interface SidebarProps {
@@ -55,6 +66,63 @@ export const Sidebar = ({
 }: SidebarProps) => {
   const { user, signOut } = useAuth();
   const { colorMode, toggleColorMode } = useColorMode();
+  const { accounts: socialAccounts, refresh } = useSocialAccounts();
+  const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  useEffect(() => {
+    if (socialAccounts.length > 0 && selectedAccounts.length === 0) {
+      setSelectedAccounts([socialAccounts[0].id]);
+    }
+  }, [socialAccounts]);
+
+  const handleAccountToggle = (accountId: string) => {
+    setSelectedAccounts((prev) => {
+      if (prev.includes(accountId)) {
+        return prev.filter((id) => id !== accountId);
+      } else {
+        return [...prev, accountId];
+      }
+    });
+  };
+
+  const handleSync = async (accountIds?: string[]) => {
+    const idsToSync = accountIds || selectedAccounts;
+    if (idsToSync.length === 0) return;
+
+    setIsSyncing(true);
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    const now = new Date().toISOString();
+    for (const accountId of idsToSync) {
+      await supabase
+        .from('social_accounts')
+        .update({ last_synced_at: now })
+        .eq('id', accountId);
+    }
+
+    await refresh();
+    setIsSyncing(false);
+  };
+
+  const handleManageAccounts = () => {
+    onViewChange('accounts');
+    if (isMobile) {
+      onClose();
+    }
+  };
+
+  const getSyncStatus = (lastSync: string | null) => {
+    if (!lastSync) return { status: 'error', text: 'Not synced' };
+    const now = new Date();
+    const syncDate = new Date(lastSync);
+    const diffMins = Math.floor((now.getTime() - syncDate.getTime()) / 60000);
+    if (diffMins < 15) return { status: 'success', text: 'Synced' };
+    if (diffMins < 60) return { status: 'warning', text: 'Needs sync' };
+    return { status: 'error', text: 'Out of sync' };
+  };
+
+  const currentAccount = socialAccounts.find(acc => selectedAccounts.includes(acc.id));
 
   const menuItems = [
     { id: 'accounts', label: 'Accounts', icon: Users },
@@ -182,6 +250,144 @@ export const Sidebar = ({
     </VStack>
   );
 
+  // Account selection menu component
+  const AccountSelectionMenu = () => (
+    <Menu closeOnSelect={false}>
+      {({ onClose }) => (
+        <>
+          <MenuButton
+            as={Button}
+            rightIcon={<ChevronDown size={16} />}
+            variant="outline"
+            size="sm"
+            minW="140px"
+            maxW="180px"
+            justifyContent="space-between"
+          >
+            <HStack spacing={2} overflow="hidden">
+              {selectedAccounts.length > 0 ? (
+                <>
+                  {selectedAccounts.length === 1 && currentAccount ? (
+                    <>
+                      <Avatar
+                        size="xs"
+                        src={currentAccount.profile_image_url || undefined}
+                        name={currentAccount.platform_username}
+                      />
+                      <Text fontSize="xs" fontWeight="medium" isTruncated>
+                        {currentAccount.platform_username}
+                      </Text>
+                    </>
+                  ) : (
+                    <Text fontSize="xs" fontWeight="medium">
+                      {selectedAccounts.length} accounts
+                    </Text>
+                  )}
+                </>
+              ) : (
+                <Text fontSize="xs" color="gray.500">
+                  Select account
+                </Text>
+              )}
+            </HStack>
+          </MenuButton>
+          <MenuList minW="280px" maxH="400px" overflowY="auto">
+            {socialAccounts.length === 0 ? (
+              <Box px={4} py={3}>
+                <Text fontSize="sm" color="gray.500">
+                  No accounts connected
+                </Text>
+              </Box>
+            ) : (
+              socialAccounts.map((account) => {
+                const syncStatus = getSyncStatus(account.last_synced_at);
+                return (
+                  <MenuItem
+                    key={account.id}
+                    closeOnSelect={false}
+                    py={3}
+                  >
+                    <HStack spacing={3} w="full">
+                      <Checkbox
+                        isChecked={selectedAccounts.includes(account.id)}
+                        onChange={() => handleAccountToggle(account.id)}
+                        colorScheme="purple"
+                      />
+                      <Avatar
+                        size="sm"
+                        src={account.profile_image_url || undefined}
+                        name={account.platform_username}
+                      />
+                      <VStack align="flex-start" spacing={0} flex={1}>
+                        <Text fontSize="sm" fontWeight="medium">
+                          {account.platform_username}
+                        </Text>
+                        <HStack spacing={2}>
+                          {getPlatformLogo(account.platform) ? (
+                            <Image
+                              src={getPlatformLogo(account.platform)}
+                              alt={account.platform}
+                              w="16px"
+                              h="16px"
+                              objectFit="contain"
+                            />
+                          ) : (
+                            <Text fontSize="xs" color="gray.500">
+                              {account.platform}
+                            </Text>
+                          )}
+                          <Badge
+                            colorScheme={
+                              syncStatus.status === 'success'
+                                ? 'green'
+                                : syncStatus.status === 'warning'
+                                ? 'orange'
+                                : 'red'
+                            }
+                            fontSize="xs"
+                            w="8px"
+                            h="8px"
+                            borderRadius="full"
+                            p={0}
+                          />
+                        </HStack>
+                      </VStack>
+                      <Tooltip label="Sync this account">
+                        <IconButton
+                          aria-label="Sync account"
+                          icon={<RefreshCw size={14} />}
+                          size="sm"
+                          variant="ghost"
+                          colorScheme="purple"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSync([account.id]);
+                          }}
+                          isLoading={isSyncing}
+                        />
+                      </Tooltip>
+                    </HStack>
+                  </MenuItem>
+                );
+              })
+            )}
+            <Divider />
+            <MenuItem
+              icon={<Settings size={16} />}
+              onClick={() => {
+                onClose();
+                handleManageAccounts();
+              }}
+              fontWeight="medium"
+            >
+              Manage Accounts
+            </MenuItem>
+          </MenuList>
+        </>
+      )}
+    </Menu>
+  );
+
   if (isMobile) {
     return (
       <>
@@ -195,22 +401,37 @@ export const Sidebar = ({
           borderBottom="1px"
           borderColor="border.default"
           align="center"
+          justify="space-between"
           px={4}
           zIndex={10}
         >
-          <IconButton
-            aria-label="Open menu"
-            icon={<MenuIcon size={20} />}
-            onClick={onOpen}
-            variant="ghost"
-            mr={3}
-          />
-          <Image
-            src={logoImage}
-            alt="App Logo"
-            maxH="40px"
-            maxW="150px"
-          />
+          <Flex align="center">
+            <IconButton
+              aria-label="Open menu"
+              icon={<MenuIcon size={20} />}
+              onClick={onOpen}
+              variant="ghost"
+              mr={3}
+            />
+            <Image
+              src={logoImage}
+              alt="App Logo"
+              maxH="40px"
+              maxW="150px"
+            />
+          </Flex>
+          <HStack spacing={2}>
+            <AccountSelectionMenu />
+            <Tooltip label={colorMode === 'light' ? 'Dark mode' : 'Light mode'}>
+              <IconButton
+                aria-label="Toggle theme"
+                icon={colorMode === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+                onClick={toggleColorMode}
+                variant="ghost"
+                size="sm"
+              />
+            </Tooltip>
+          </HStack>
         </Flex>
         <Box h="60px" />
         <Drawer isOpen={isOpen} placement="left" onClose={onClose}>
