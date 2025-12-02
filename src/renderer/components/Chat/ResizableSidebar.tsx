@@ -36,6 +36,8 @@ export const ResizableSidebar: React.FC<ResizableSidebarProps> = ({
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
+  const startXRef = useRef<number>(0);
+  const startWidthRef = useRef<number>(0);
 
   // Persist width to localStorage
   useEffect(() => {
@@ -51,13 +53,23 @@ export const ResizableSidebar: React.FC<ResizableSidebarProps> = ({
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    
+    if (!sidebarRef.current) return;
+    
+    // Store the initial mouse X position and sidebar width
+    startXRef.current = e.clientX;
+    startWidthRef.current = sidebarRef.current.offsetWidth;
+    
     setIsResizing(true);
   }, []);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isResizing || !sidebarRef.current) return;
 
-    const newWidth = e.clientX;
+    // Calculate the difference from where the drag started
+    const deltaX = e.clientX - startXRef.current;
+    const newWidth = startWidthRef.current + deltaX;
     
     // Auto-collapse threshold: if dragged below this width, collapse automatically
     // Use a threshold between collapsedWidth and minWidth
@@ -79,6 +91,8 @@ export const ResizableSidebar: React.FC<ResizableSidebarProps> = ({
 
   const handleMouseUp = useCallback(() => {
     setIsResizing(false);
+    startXRef.current = 0;
+    startWidthRef.current = 0;
   }, []);
 
   useEffect(() => {

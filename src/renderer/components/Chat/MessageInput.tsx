@@ -68,6 +68,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const prevSendingRef = useRef(false);
+  const cursorPositionRef = useRef<{ start: number; end: number } | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const containerWidthRef = useRef<number | null>(null);
   const { accounts } = useSocialAccounts();
   const { webviewRefs } = useWebviews();
 
@@ -334,6 +337,127 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       });
     };
   }, [attachedFiles]);
+
+  // Continuously track cursor position
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const updateCursorPosition = () => {
+      if (document.activeElement === textarea) {
+        cursorPositionRef.current = {
+          start: textarea.selectionStart,
+          end: textarea.selectionEnd,
+        };
+      }
+    };
+
+    textarea.addEventListener('select', updateCursorPosition);
+    textarea.addEventListener('click', updateCursorPosition);
+    textarea.addEventListener('keyup', updateCursorPosition);
+    textarea.addEventListener('keydown', updateCursorPosition);
+    textarea.addEventListener('input', updateCursorPosition);
+
+    return () => {
+      textarea.removeEventListener('select', updateCursorPosition);
+      textarea.removeEventListener('click', updateCursorPosition);
+      textarea.removeEventListener('keyup', updateCursorPosition);
+      textarea.removeEventListener('keydown', updateCursorPosition);
+      textarea.removeEventListener('input', updateCursorPosition);
+    };
+  }, []);
+
+  // Preserve cursor position when sidebar resizes (Telegram-style)
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    // Find the chat window container that changes width when sidebar resizes
+    // This is the flex container that adjusts when the sidebar width changes
+    const chatWindowContainer = textarea.closest('.flex-1.flex.h-full.overflow-hidden') || 
+                                 textarea.closest('.flex-1.flex.h-full') || 
+                                 textarea.closest('.flex-1');
+    
+    if (!chatWindowContainer) return;
+
+    const container = chatWindowContainer as HTMLElement;
+    let rafId: number | null = null;
+    let restoreTimeout: number | null = null;
+
+    const restoreCursor = () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+      
+      if (restoreTimeout !== null) {
+        clearTimeout(restoreTimeout);
+      }
+
+      // Use double RAF to ensure layout has settled
+      rafId = requestAnimationFrame(() => {
+        rafId = requestAnimationFrame(() => {
+          if (textarea && cursorPositionRef.current && document.activeElement === textarea) {
+            try {
+              const { start, end } = cursorPositionRef.current;
+              const maxPos = textarea.value.length;
+              const safeStart = Math.min(start, maxPos);
+              const safeEnd = Math.min(end, maxPos);
+              textarea.setSelectionRange(safeStart, safeEnd);
+            } catch (e) {
+              // Ignore errors if position is invalid
+            }
+          }
+          rafId = null;
+        });
+      });
+    };
+
+    const handleResize = () => {
+      const currentWidth = container.offsetWidth;
+      
+      // Check if width actually changed (sidebar resize)
+      if (containerWidthRef.current !== null && currentWidth !== containerWidthRef.current) {
+        // Only preserve if textarea is focused and has a stored position
+        if (document.activeElement === textarea && cursorPositionRef.current) {
+          restoreCursor();
+        }
+      }
+      
+      containerWidthRef.current = currentWidth;
+    };
+
+    // Initialize width
+    containerWidthRef.current = container.offsetWidth;
+
+    // Create ResizeObserver to watch for container width changes
+    resizeObserverRef.current = new ResizeObserver(handleResize);
+    resizeObserverRef.current.observe(container);
+
+    // Also handle when resize ends (mouse up) to ensure final restoration
+    const handleMouseUp = () => {
+      if (document.activeElement === textarea && cursorPositionRef.current) {
+        restoreTimeout = window.setTimeout(() => {
+          restoreCursor();
+          restoreTimeout = null;
+        }, 100);
+      }
+    };
+
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect();
+      }
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+      if (restoreTimeout !== null) {
+        clearTimeout(restoreTimeout);
+      }
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey && !sendingMessage) {
