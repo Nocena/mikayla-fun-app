@@ -13,9 +13,10 @@ import 'swiper/css/pagination';
 interface MediaSwiperProps {
   media: MessageMedia[];
   hasTextBelow?: boolean;
+  hasContentAbove?: boolean;
 }
 
-export const MediaSwiper: React.FC<MediaSwiperProps> = ({ media, hasTextBelow = false }) => {
+export const MediaSwiper: React.FC<MediaSwiperProps> = ({ media, hasTextBelow = false, hasContentAbove = false }) => {
   const [swiper, setSwiper] = React.useState<SwiperType | null>(null);
   const [activeIndex, setActiveIndex] = React.useState(0);
 
@@ -35,7 +36,15 @@ export const MediaSwiper: React.FC<MediaSwiperProps> = ({ media, hasTextBelow = 
     return null;
   }
 
-  const roundedClasses = hasTextBelow ? 'rounded-t-2xl' : 'rounded-2xl';
+  // Determine rounded classes based on content above and below
+  let roundedClasses = 'rounded-2xl';
+  if (hasContentAbove && hasTextBelow) {
+    roundedClasses = 'rounded-none'; // No rounding when sandwiched
+  } else if (hasContentAbove) {
+    roundedClasses = 'rounded-b-2xl rounded-t-none'; // Content above, nothing below
+  } else if (hasTextBelow) {
+    roundedClasses = 'rounded-t-2xl rounded-b-none'; // Content below, nothing above
+  }
   const isFirstSlide = activeIndex === 0;
   const isLastSlide = activeIndex === media.length - 1;
 

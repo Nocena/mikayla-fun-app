@@ -14,6 +14,7 @@ export interface MessageMedia {
     type: 'photo' | 'gif' | 'video' | 'audio';
     thumbnailUrl: string;
     fullUrl?: string;
+    canView?: boolean; // Whether this media can be viewed without unlocking
 }
 
 export interface Message {

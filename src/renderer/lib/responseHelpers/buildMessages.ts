@@ -11,15 +11,24 @@ function extractMedia(entry: any): MessageMedia[] {
 
     return entry.media
         .map((mediaItem: any) => {
-            if (!mediaItem.files?.thumb?.url) {
+            // Check if media has valid URLs (at least thumb or preview/full)
+            const hasValidUrl = mediaItem.files?.thumb?.url || 
+                               mediaItem.files?.preview?.url || 
+                               mediaItem.files?.full?.url;
+            
+            if (!hasValidUrl) {
                 return null;
             }
+
+            // Determine if media can be viewed (canView flag from API)
+            const canView = typeof mediaItem.canView === 'boolean' ? mediaItem.canView : true;
 
             return {
                 id: mediaItem.id.toString(),
                 type: (mediaItem.type || 'photo') as MessageMedia['type'],
-                thumbnailUrl: mediaItem.files.thumb.url,
-                fullUrl: mediaItem.files.full?.url || mediaItem.files.preview?.url || mediaItem.files.thumb.url,
+                thumbnailUrl: mediaItem.files.thumb?.url || mediaItem.files.preview?.url || mediaItem.files.full?.url,
+                fullUrl: mediaItem.files.full?.url || mediaItem.files.preview?.url || mediaItem.files.thumb?.url,
+                canView,
             };
         })
         .filter((m: any): m is MessageMedia => m !== null);

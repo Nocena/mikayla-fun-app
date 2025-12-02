@@ -37,6 +37,7 @@ interface LockedMessageCardProps {
   hasText: boolean;
   onUnlock?: () => void;
   isUnlocking?: boolean;
+  hasContentBelow?: boolean;
 }
 
 export const LockedMessageCard: React.FC<LockedMessageCardProps> = ({
@@ -45,11 +46,13 @@ export const LockedMessageCard: React.FC<LockedMessageCardProps> = ({
   hasText,
   onUnlock,
   isUnlocking = false,
+  hasContentBelow = false,
 }) => {
   const formattedPrice = price.toFixed(2).replace(/\.00$/, '');
+  const roundedClasses = hasContentBelow ? 'rounded-t-2xl rounded-b-none' : 'rounded-2xl';
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-border-color bg-panel/80 px-5 py-6 text-center">
+    <div className={`relative overflow-hidden ${roundedClasses} border border-border-color bg-panel/80 px-5 py-6 text-center`}>
       <div className="absolute -top-3 right-4 text-text-secondary/20">
         <LockIcon className="w-10 h-10" />
       </div>
