@@ -21,6 +21,7 @@ import theme from './theme';
 import logoImage from './assets/logo.png';
 import {ChatView} from "./views/ChatView";
 import { LoadingState } from './components/common/LoadingState';
+import { ThemeSync } from './components/common/ThemeSync';
 
 function AuthScreen() {
   const [showLogin, setShowLogin] = useState(true);
@@ -53,43 +54,42 @@ function AuthScreen() {
 function AppContent() {
   const { user, loading } = useAuth();
   const { activeView, setActiveView } = useNavigation();
-
-  if (loading) {
-    return <LoadingState message="Loading..." variant="minimal" />;
-  }
-
-  if (!user) {
-    return <AuthScreen />;
-  }
-
-  const renderView = () => {
-    switch (activeView) {
-      case 'inbox':
-        return <InboxView />;
-      case 'chat':
-        return <ChatView />;
-      case 'accounts':
-        return <SocialAccountsView />;
-      case 'clients':
-        return <ClientsView />;
-      case 'ai-config':
-        return <AIConfigView />;
-      case 'analytics':
-        return <AnalyticsView />;
-      case 'settings':
-        return <SettingsView />;
-      default:
-        return <SocialAccountsView />;
-    }
-  };
-
+  
   return (
     <>
-      {/* Global background webviews for all accounts */}
-      <GlobalAccountWebviews />
-      <MainLayout activeView={activeView} onViewChange={(view) => setActiveView(view as any)}>
-        {renderView()}
-      </MainLayout>
+      <ThemeSync />
+      {loading ? (
+        <LoadingState message="Loading..." variant="minimal" />
+      ) : !user ? (
+        <AuthScreen />
+      ) : (
+        <>
+          {/* Global background webviews for all accounts */}
+          <GlobalAccountWebviews />
+          <MainLayout activeView={activeView} onViewChange={(view) => setActiveView(view as any)}>
+            {(() => {
+              switch (activeView) {
+                case 'inbox':
+                  return <InboxView />;
+                case 'chat':
+                  return <ChatView />;
+                case 'accounts':
+                  return <SocialAccountsView />;
+                case 'clients':
+                  return <ClientsView />;
+                case 'ai-config':
+                  return <AIConfigView />;
+                case 'analytics':
+                  return <AnalyticsView />;
+                case 'settings':
+                  return <SettingsView />;
+                default:
+                  return <SocialAccountsView />;
+              }
+            })()}
+          </MainLayout>
+        </>
+      )}
     </>
   );
 }
