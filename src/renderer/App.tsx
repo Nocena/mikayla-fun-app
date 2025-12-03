@@ -16,26 +16,29 @@ import { ClientsView } from './views/ClientsView';
 import { AIConfigView } from './views/AIConfigView';
 import { AnalyticsView } from './views/AnalyticsView';
 import { SettingsView } from './views/SettingsView';
-import { Box, Container, Flex, Text, Image } from '@chakra-ui/react';
+import { Box, Container, Flex, Text, Image, useColorMode } from '@chakra-ui/react';
 import theme from './theme';
 import logoImage from './assets/logo.png';
+import logoLightImage from './assets/logo-light.png';
 import {ChatView} from "./views/ChatView";
 import { LoadingState } from './components/common/LoadingState';
 import { ThemeSync } from './components/common/ThemeSync';
 
 function AuthScreen() {
   const [showLogin, setShowLogin] = useState(true);
+  const { colorMode } = useColorMode();
 
   return (
     <Box minH="100vh" bg="bg.subtle" display="flex" alignItems="center" justifyContent="center">
       <Container maxW="container.sm">
         <Box mb={8} textAlign="center">
           <Image
-            src={logoImage}
+            src={colorMode === 'light' ? logoLightImage : logoImage}
             alt="App Logo"
             maxH="80px"
             mx="auto"
             mb={4}
+            // light theme: logo-light.png, dark theme: logo.png
           />
           <Text color="text.muted" mt={2}>
             Manage all your social media messages with AI assistance

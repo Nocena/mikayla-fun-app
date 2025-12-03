@@ -44,6 +44,7 @@ import { getPlatformLogo } from '../../utils/platform';
 import { supabase } from '../../lib/supabase';
 import { useState, useEffect } from 'react';
 import logoImage from '../../assets/logo.png';
+import logoLightImage from '../../assets/logo-light.png';
 
 interface SidebarProps {
   activeView: string;
@@ -151,10 +152,11 @@ export const Sidebar = ({
         borderColor="border.default"
       >
         <Image
-          src={logoImage}
+          src={colorMode === 'light' ? logoLightImage : logoImage}
           alt="App Logo"
           maxH={isCollapsed ? '32px' : '50px'}
           maxW={isCollapsed ? '48px' : '200px'}
+          // light theme: logo-light.png, dark theme: logo.png
         />
       </Flex>
 
@@ -414,10 +416,11 @@ export const Sidebar = ({
               mr={3}
             />
             <Image
-              src={logoImage}
+              src={colorMode === 'light' ? logoLightImage : logoImage}
               alt="App Logo"
               maxH="40px"
               maxW="150px"
+              // light theme: logo-light.png, dark theme: logo.png
             />
           </Flex>
           <HStack spacing={2}>
