@@ -102,7 +102,10 @@ export const MessageToolbar = ({ characterCount, onActionClick, activeAction, di
       <div className="flex flex-wrap gap-2">
         {MESSAGE_TOOLBAR_ACTIONS.map((action) => {
           const isActive = activeAction === action.key;
-          const isDisabled = disabled || action.disabled;
+          // Emoji button should always be available, even when disabled prop is true
+          const isDisabled = action.key === 'emoji' 
+            ? action.disabled 
+            : (disabled || action.disabled);
           return (
             <button
               key={action.key}
