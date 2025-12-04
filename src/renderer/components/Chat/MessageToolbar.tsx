@@ -24,6 +24,7 @@ export interface MessageToolbarProps {
   characterCount: number;
   onActionClick?: (actionKey: string) => void;
   activeAction?: string;
+  disabled?: boolean;
 }
 
 const MESSAGE_TOOLBAR_ACTIONS: ToolbarAction[] = [
@@ -95,27 +96,28 @@ const MESSAGE_TOOLBAR_ACTIONS: ToolbarAction[] = [
   },
 ];
 
-export const MessageToolbar = ({ characterCount, onActionClick, activeAction }: MessageToolbarProps) => {
+export const MessageToolbar = ({ characterCount, onActionClick, activeAction, disabled = false }: MessageToolbarProps) => {
   return (
     <div className="mt-3 flex flex-col gap-2">
       <div className="flex flex-wrap gap-2">
         {MESSAGE_TOOLBAR_ACTIONS.map((action) => {
           const isActive = activeAction === action.key;
+          const isDisabled = disabled || action.disabled;
           return (
             <button
               key={action.key}
               type="button"
               className={`flex items-center gap-1 rounded-lg border px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 ${
-                action.disabled
+                isDisabled
                   ? 'cursor-not-allowed opacity-40 border-border-color bg-panel text-text-secondary'
                   : isActive
                   ? 'border-primary bg-primary/10 text-primary'
                   : 'border-border-color bg-panel text-text-secondary hover:border-primary hover:text-primary'
               }`}
               title={action.tooltip}
-              disabled={action.disabled}
+              disabled={isDisabled}
               onClick={() => {
-                if (!action.disabled && onActionClick) {
+                if (!isDisabled && onActionClick) {
                   onActionClick(action.key);
                 }
               }}

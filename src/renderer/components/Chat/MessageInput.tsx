@@ -74,6 +74,13 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const { accounts } = useSocialAccounts();
   const { webviewRefs } = useWebviews();
 
+  // Check if current account is Fansly
+  const isFanslyAccount = useMemo(() => {
+    if (!socialAccountId) return false;
+    const account = accounts.find(acc => acc.id === socialAccountId);
+    return account?.platform.toLowerCase() === 'fansly';
+  }, [accounts, socialAccountId]);
+
   const resolveAccount = (acc?: SocialAccount) => {
     if (!acc) return undefined;
     if (acc.platform.toLowerCase() !== 'onlyfans') return undefined;
@@ -532,6 +539,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         characterCount={text.length}
         onActionClick={handleToolbarAction}
         activeAction={isEmojiPickerOpen ? 'emoji' : undefined}
+        disabled={isFanslyAccount}
       />
 
       <PriceLockModal
